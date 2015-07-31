@@ -113,7 +113,7 @@ substrate = NEAT.Substrate(
         )
 #'''
 substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID
-substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID
+substrate.m_output_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID
 
 substrate.m_allow_input_hidden_links = False
 substrate.m_allow_input_output_links = False
@@ -205,12 +205,12 @@ def evaluate_retina_or(genome):
 
             if (left or right):
                 error += abs(1.0 - output[0])
-                if output[0] > 0.5:
+                if output[0] > 0.:
                     correct +=1.
 
             else:
-                error += abs(0.0 - output[0])
-                if output[0] < 0.5  and output[0] > 0.000000001:
+                error += abs(-1.0 - output[0])
+                if output[0] < 0.:
                     correct +=1.
 
         return [1000/(1+ error*error), correct/256.,net.GetTotalConnectionLength(), end_time ]
@@ -262,12 +262,12 @@ def evaluate_retina_double(genome):
                 error += abs(-1.0 - output[0])
                 error += abs(1.0 - output[1])
 
-                if output[0] < 0.0 and output[1] > 0.0 ):
+                if output[0] < 0.0 and output[1] > 0.0:
                     correct +=1.
             else:
                 error += abs(-1.0 - output[0])
                 error += abs(-1.0 -output[1])
-                if output[0] < 0 and output[1] < 0):
+                if output[0] < 0 and output[1] < 0:
                     correct +=1.
 
         return [1000/(1+ error*error), correct/256.,net.GetTotalConnectionLength() ]
@@ -286,28 +286,15 @@ def getbest(run, generations):
         genome_list = NEAT.GetGenomeList(pop)
         fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_or, display = False, cores= 4)
         [genome.SetFitness(fitness[0]) for genome, fitness in zip(genome_list, fitnesses)]
-
+        [genome.SetPerformance(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetLength(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
+        average_time = np.mean([fitness[3] for fitness in fitnesses])
+        max_time = max([fitness[3] for fitness in fitnesses])
         best = pop.GetBestGenome()
-
-        net = NEAT.NeuralNetwork()
-        pop.Species[0].GetLeader().BuildPhenotype(net)
-        img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img += 10
-        NEAT.DrawPhenotype(img, (0, 0, 500, 500), net )
-        cv2.imshow("CPPN", img)
-
-        net = NEAT.NeuralNetwork()
-        pop.Species[0].GetLeader().Build_ES_Phenotype(net, substrate, params)
-        img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img += 10
-
-        utilities.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True )
-        cv2.imshow("NN", img)
-        cv2.waitKey(1)
-
         print "---------------------------"
         print "Generation: ", generation
-        print "Best ", max([x.GetLeader().GetFitness() for x in pop.Species])
+        print "Best ", best.GetFitness(), " Perf: ", best.GetPerformance()
+        print "Average time ", average_time, " Longest time: ", max_time
         generations = generation
         pop.Epoch()
     return
