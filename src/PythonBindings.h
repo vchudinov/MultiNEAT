@@ -39,7 +39,7 @@
 #include "Species.h"
 #include "Parameters.h"
 #include "Random.h"
-#include "NSGAPopulation.h"
+//#include "NSGAPopulation.h"
 
 namespace py = boost::python;
 using namespace NEAT;

@@ -2964,8 +2964,8 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
 // Used to determine the placement of hidden neurons in the Evolvable Substrate.
 void Genome::DivideInitialize(const std::vector<double>& node, boost::shared_ptr<QuadPoint>& root,  NeuralNetwork& cppn, Parameters& params, const bool& outgoing, const double& z_coord)
 {   // Have to check if this actually does something useful here
-    CalculateDepth();
-    int cppn_depth = GetDepth();
+    //CalculateDepth();
+    int cppn_depth = 3; // GetDepth();
     std::vector<double> t_inputs;
     t_inputs.reserve(7); // 3 dimensions + bias.
 
@@ -3064,8 +3064,8 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
             // If it is not it should only happen if the LEO output is greater than a specified threshold
             else if (!params.Leo || (params.Leo && root -> children[i] -> leo > params.LeoThreshold))
             {
-                CalculateDepth();
-                int cppn_depth = GetDepth();
+              //  CalculateDepth();
+                int cppn_depth = 3;// GetDepth();
 
                 double d_left, d_right, d_top, d_bottom;
                 std::vector<double> inputs;

@@ -79,10 +79,6 @@ double xortest(Genome& g, Substrate& subst, Parameters& params)
     for(int i=0; i<depth; i++) { net.Activate(); }
     error += abs(net.Output()[0] - 0.0);
 
-    //std::vector<double> f;
-    //f.push_back((4.0 - error)*(4.0 - error));
-    //f.push_back(g.Length);
-
     return (4.0 - error)*(4.0 - error);
 
 }
@@ -90,7 +86,7 @@ double xortest(Genome& g, Substrate& subst, Parameters& params)
 int main()
 {
     Parameters params;
-    params.PopulationSize = 2;
+    params.PopulationSize = 100;
 
     params.DynamicCompatibility = true;
     params.CompatTreshold = 2.0;
@@ -131,7 +127,7 @@ int main()
     params.ActivationFunction_UnsignedSine_Prob = 0.0;
     params.ActivationFunction_Linear_Prob = 1.0;
 
-    params.DivisionThreshold = 0.5;
+  params.DivisionThreshold = 0.5;
 	params.VarianceThreshold = 0.03;
 	params.BandThreshold = 0.3;
 	params.InitialDepth = 2;
@@ -218,9 +214,9 @@ int main()
     //NSGA
     Population pop(s, params, true, 1.0);
 
-    for(int k=0; k<5000; k++)
+    for(int k=0; k<1500; k++)
     {
-        //std::vector<double> bestf(2,-999999);
+
         double bestf = -999999;
         for(unsigned int i=0; i < pop.m_Species.size(); i++)
         {
@@ -236,23 +232,8 @@ int main()
                 }
             }
         }
-            /*
-        for(unsigned int i=0; i < pop.m_Genomes.size(); i++)
-        {
-            std::vector<double> f = xortest(pop.m_Genomes[i], substrate, params);
-                pop.m_Genomes[i].SetMultiFitness(f);
-                pop.m_Genomes[i].SetEvaluated();
 
-                if (f > bestf)
-                {
-                    bestf = f;
-                }
-        }*/
-
-
-
-        //printf("Generation: %d, best fitness: %3.5f\n", k, bestf[0]);
-         printf("Generation: %d, best fitness: %3.5f\n", k, bestf);
+        printf("Generation: %d, best fitness: %3.5f\n", k, bestf);
         pop.Epoch();
         }
     return 0;
