@@ -3065,7 +3065,8 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
             else if (!params.Leo || (params.Leo && root -> children[i] -> leo > params.LeoThreshold))
             {
               //  CalculateDepth();
-                int cppn_depth = 3;// GetDepth();
+                int cppn_depth = 3;
+            // GetDepth();
 
                 double d_left, d_right, d_top, d_bottom;
                 std::vector<double> inputs;
