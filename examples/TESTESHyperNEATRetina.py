@@ -17,7 +17,7 @@ import time
 # NEAT parameters
 
 params = NEAT.Parameters()
-params.PopulationSize = 100
+params.PopulationSize = 200
 params.DynamicCompatibility = True
 params.MinSpecies = 5
 params.MaxSpecies = 15
@@ -52,7 +52,7 @@ params.DivisionThreshold = 0.5
 params.VarianceThreshold = .03
 params.BandThreshold = 0.03
 params.InitialDepth = 3
-params.MaxDepth = 4
+params.MaxDepth = 5
 params.IterationLevel = 1
 params.Leo = True
 params.LeoSeed = True
@@ -279,7 +279,7 @@ def evaluate_retina_double(genome):
 def getbest(run, generations):
     g = NEAT.Genome(0, 7, 1, True, NEAT.ActivationFunction.SIGNED_SIGMOID, NEAT.ActivationFunction.SIGNED_SIGMOID,
             params)
-
+    results = []
     pop = NEAT.Population(g, params, True, 1.0)
     for generation in range(generations):
 
@@ -293,8 +293,14 @@ def getbest(run, generations):
         best = pop.GetBestGenome()
         print "---------------------------"
         print "Generation: ", generation
-        print "Best ", best.GetFitness(), " Perf: ", best.GetPerformance()
+        print "Best ", best.GetFitness(), " Perf: ", best.GetPerformance(), "Len", best.Length
         print "Average time ", average_time, " Longest time: ", max_time
+
+        results.append([run, generation, best.GetFitness(), best.GetPerformance(), best.Length])
+        if generation % 100 == 0:
+            best.Save("datadump/best_%d_%d" %(run, generation))
+            Utilities.dump_to_file(results, "datadump/release.csv")
+            results = []
         generations = generation
         pop.Epoch()
     return
