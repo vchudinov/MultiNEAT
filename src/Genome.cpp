@@ -71,6 +71,7 @@ Genome::Genome()
     m_PhenotypeBehavior = NULL;
     Performance = 0.0;
     Length = 0.0;
+    multifitness.clear();
 }
 
 
@@ -90,6 +91,7 @@ Genome::Genome(const Genome& a_G)
     m_PhenotypeBehavior = a_G.m_PhenotypeBehavior;
     Performance = a_G.Performance;
     Length = a_G.Length;
+        multifitness.clear();
 }
 
 // assignment operator
@@ -111,6 +113,7 @@ Genome& Genome::operator =(const Genome& a_G)
         m_PhenotypeBehavior = a_G.m_PhenotypeBehavior;
         Performance = a_G.Performance;
         Length = a_G.Length;
+            multifitness.clear();
     }
 
     return *this;
@@ -274,6 +277,7 @@ Genome::Genome(unsigned int a_ID,
     m_PhenotypeBehavior = NULL;
     Performance = 0.0;
     Length = 0.0;
+        multifitness.clear();
 }
 
 
@@ -440,6 +444,7 @@ Genome::Genome(unsigned int a_ID,
     m_PhenotypeBehavior = NULL;
     Performance = 0.0;
     Length = 0.0;
+        multifitness.clear();
 
 }
 
@@ -3215,7 +3220,7 @@ void Genome::CollectValues(std::vector<double>& vals, boost::shared_ptr<QuadPoin
         vals.push_back(point-> weight);
     }
 }
-
+/*
 // Returns all the nodes found by a query for a single point. Useful for visualisation and things like that.
 py::list Genome::GetPoints(py::tuple& t_node,Parameters& params, bool outgoing )
 {   std::vector<double> node;
@@ -3240,7 +3245,8 @@ py::list Genome::GetPoints(py::tuple& t_node,Parameters& params, bool outgoing )
     }
 
     return return_values;
-}
+}*/
+//
 
 // Removes all the dangling connections. This still leaves the nodes though,
 void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_count,unsigned int output_count,unsigned int hidden_count)

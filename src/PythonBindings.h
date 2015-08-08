@@ -39,7 +39,7 @@
 #include "Species.h"
 #include "Parameters.h"
 #include "Random.h"
-//#include "NSGAPopulation.h"
+#include "NSGAPopulation.h"
 
 namespace py = boost::python;
 using namespace NEAT;
@@ -220,12 +220,14 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
 
             .def("Save", Genome_Save)
 
-	          .def("Build_ES_Phenotype", &Genome::Build_ES_Phenotype)
-	          .def("GetPoints", &Genome::GetPoints)
-            .def("SetPerformance", &Genome::SetPerformance)
-            .def("GetPerformance", &Genome::GetPerformance)
-            .def("SetLength", &Genome::SetLength)
-            .def_readwrite("Length", &Genome::Length)
+	        .def("Build_ES_Phenotype", &Genome::Build_ES_Phenotype)
+	    //.def("GetPoints", &Genome::GetPoints)
+        .def("SetPerformance", &Genome::SetPerformance)
+        .def("GetPerformance", &Genome::GetPerformance)
+        .def("SetLength", &Genome::SetLength)
+        .def("GetMultiFitness", &Genome::GetMultiFitness)
+        .def("SetMultiFitness", &Genome::SetMultiFitness)
+        .def_readwrite("Length", &Genome::Length)
 
             .def_pickle(Genome_pickle_suite())
             ;
@@ -317,6 +319,22 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
             .def_readwrite("Species", &Population::m_Species)
             .def_readwrite("Parameters", &Population::m_Parameters)
 
+            ;
+
+///////////////////////////////////////////////////////////////////
+// NSGAPopulation class
+///////////////////////////////////////////////////////////////////
+
+    class_<NSGAPopulation>("NSGAPopulation", init<Genome, Parameters, bool, double>())
+            .def(init<char*>())
+            .def("Epoch", &NSGAPopulation::Epoch)
+            .def("Save", &NSGAPopulation::Save)
+            .def("GetBestFitnessEver", &NSGAPopulation::GetBestFitnessEver)
+            .def("GetBestGenome", &NSGAPopulation::GetBestGenome)
+            .def("GetLeader", &NSGAPopulation::GetLeader)
+            .def("SetProbabilities", &NSGAPopulation::SetProbabilities)
+            //.def("NumGenomes", &NSGAPopulation::NumGenomes)
+            .def_readwrite("Genomes", &NSGAPopulation::m_Genomes)
             ;
 
 ///////////////////////////////////////////////////////////////////

@@ -15,7 +15,7 @@
 #include "NeuralNetwork.h"
 #include "Parameters.h"
 #include "Substrate.h"
-//#include "NSGAPopulation.h"
+#include "NSGAPopulation.h"
 
 #include <iostream>
 #include <boost/asio.hpp>
@@ -34,8 +34,7 @@ double abs(double x)
     return x;
 }
 
-//std::vector<double>
-double xortest(Genome& g, Substrate& subst, Parameters& params)
+std::vector<double> xortest(Genome& g, Substrate& subst, Parameters& params)
 {
 
     NeuralNetwork net;
@@ -79,14 +78,18 @@ double xortest(Genome& g, Substrate& subst, Parameters& params)
     for(int i=0; i<depth; i++) { net.Activate(); }
     error += abs(net.Output()[0] - 0.0);
 
-    return (4.0 - error)*(4.0 - error);
+    std::vector<double> f;
+    f.push_back((4.0 - error)*(4.0 - error));
+    f.push_back(net.GetTotalConnectionLength());
+
+    return f;//(4.0 - error)*(4.0 - error);
 
 }
 
 int main()
 {
     Parameters params;
-    params.PopulationSize = 300;
+    params.PopulationSize = 100;
 
     params.DynamicCompatibility = true;
     params.CompatTreshold = 2.0;
@@ -127,13 +130,13 @@ int main()
     params.ActivationFunction_UnsignedSine_Prob = 0.0;
     params.ActivationFunction_Linear_Prob = 1.0;
 
-  params.DivisionThreshold = 0.5;
+    params.DivisionThreshold = 0.5;
 	params.VarianceThreshold = 0.03;
 	params.BandThreshold = 0.3;
 	params.InitialDepth = 2;
-	params.MaxDepth = 4;
+	params.MaxDepth = 3;
 	params.IterationLevel = 1;
-	params.Leo = true;
+	params.Leo = false;
 	params.GeometrySeed = false;
 	params.LeoSeed = false;
 	params.LeoThreshold = 0.3;
@@ -212,13 +215,17 @@ int main()
     Genome s(0, 7, 1, false, SIGNED_SIGMOID, SIGNED_SIGMOID,
             params);
     //NSGA
-    Population pop(s, params, true, 1.0);
-
-    for(int k=0; k<1500; k++)
+    NSGAPopulation pop(s, params, true, 1.0);
+    std::vector<double> ps;
+    ps.push_back(1.0);
+    ps.push_back(1.0);
+    ps.push_back(1.0);
+    pop.SetProbabilities(ps);
+    for(int k=0; k<100; k++)
     {
-
+        //std::vector<double> bestf(2,-999999);
         double bestf = -999999;
-        for(unsigned int i=0; i < pop.m_Species.size(); i++)
+        /*for(unsigned int i=0; i < pop.m_Species.size(); i++)
         {
             for(unsigned int j=0; j < pop.m_Species[i].m_Individuals.size(); j++)
             {
@@ -232,8 +239,23 @@ int main()
                 }
             }
         }
+        */
+        for(unsigned int i=0; i < pop.m_Genomes.size(); i++)
+        {
+                std::vector<double> f = xortest(pop.m_Genomes[i], substrate, params);
+                pop.m_Genomes[i].SetMultiFitness(f);
+                pop.m_Genomes[i].SetEvaluated();
 
-        printf("Generation: %d, best fitness: %3.5f\n", k, bestf);
+                if (f[0] > bestf)
+                {
+                    bestf = f[0];
+                }
+        }
+
+
+
+        //printf("Generation: %d, best fitness: %3.5f\n", k, bestf[0]);
+         printf("Generation: %d, best fitness: %3.5f\n", k, bestf);
         pop.Epoch();
         }
     return 0;

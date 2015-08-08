@@ -128,6 +128,32 @@ private:
 
 public:
 
+     std::vector<double> multifitness;
+      std::vector<Genome*> dominated;
+      unsigned int rank;
+      unsigned int tempRank;
+      double distance;
+
+      void SetMultiFitness(py::list fitness_scores)
+    {
+
+      multifitness.clear();
+      for(int j=0; j<py::len(fitness_scores); j++)
+      {
+        multifitness.push_back(py::extract<double>(fitness_scores[j]));
+      }
+
+    }
+/*
+     void SetMultiFitness(std::vector<double> fitness_scores)
+    {
+    multifitness = fitness_scores;
+    }
+*/
+    std::vector<double> GetMultiFitness()
+    {
+        return multifitness;
+    }
     // tells whether this genome was evaluated already
     // used in steady state evolution
     bool m_Evaluated;
@@ -562,7 +588,7 @@ public:
     void Clean_Net( std::vector<Connection>& connections, unsigned int input_count,
                     unsigned int output_count, unsigned int hidden_count);
 
-    py::list GetPoints(py::tuple& node,Parameters& params, bool outgoing);
+  //  py::list GetPoints(py::tuple& node,Parameters& params, bool outgoing);
 
 #ifdef USE_BOOST_PYTHON
 
