@@ -86,7 +86,7 @@ double xortest(Genome& g, Substrate& subst, Parameters& params)
 int main()
 {
     Parameters params;
-    params.PopulationSize = 100;
+    params.PopulationSize = 300;
 
     params.DynamicCompatibility = true;
     params.CompatTreshold = 2.0;
@@ -131,9 +131,9 @@ int main()
 	params.VarianceThreshold = 0.03;
 	params.BandThreshold = 0.3;
 	params.InitialDepth = 2;
-	params.MaxDepth = 3;
+	params.MaxDepth = 4;
 	params.IterationLevel = 1;
-	params.Leo = false;
+	params.Leo = true;
 	params.GeometrySeed = false;
 	params.LeoSeed = false;
 	params.LeoThreshold = 0.3;

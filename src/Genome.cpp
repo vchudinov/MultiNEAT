@@ -33,6 +33,7 @@
 #include <fstream>
 #include <queue>
 #include <math.h>
+#include <cmath>
 #include <utility>
 #include <boost/unordered_map.hpp>
 #include <boost/shared_ptr.hpp>
@@ -2965,14 +2966,14 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
 void Genome::DivideInitialize(const std::vector<double>& node, boost::shared_ptr<QuadPoint>& root,  NeuralNetwork& cppn, Parameters& params, const bool& outgoing, const double& z_coord)
 {   // Have to check if this actually does something useful here
     //CalculateDepth();
-    int cppn_depth = 3; // GetDepth();
+    int cppn_depth = 5; // GetDepth();
     std::vector<double> t_inputs;
     t_inputs.reserve(7); // 3 dimensions + bias.
 
     // Standard Tree stuff. Create children, check their output with the cppn
     // and if they have higher variance add them to their parent. Repeat with the children
     // until maxDepth has been reached or if the variance isn't high enough.
-    boost::shared_ptr<QuadPoint> p;
+    boost::shared_ptr<QuadPoint> p; // used for various stuff.
 
     std::queue<boost::shared_ptr<QuadPoint> > q;
     q.push(root);
@@ -3065,7 +3066,7 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
             else if (!params.Leo || (params.Leo && root -> children[i] -> leo > params.LeoThreshold))
             {
               //  CalculateDepth();
-                int cppn_depth = 3;
+                int cppn_depth = 5;
             // GetDepth();
 
                 double d_left, d_right, d_top, d_bottom;
@@ -3142,8 +3143,9 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
 
                 d_bottom = std::abs (root -> children[i] -> weight - cppn.Output()[0]);
                 cppn.Flush();
-
-                if (std::max(std::min(d_top, d_bottom), std::min(d_left, d_right)) > params.BandThreshold)
+                double vert = std::min(d_top, d_bottom);
+                double horiz = std::min(d_left, d_right);
+                if (std::max(vert, horiz ) > params.BandThreshold)
                 {
                     Genome::TempConnection tc;
                     //Yeah its ugly
@@ -3188,31 +3190,6 @@ double Genome::Variance(boost::shared_ptr<QuadPoint> &point)
     {
         acc(point -> children[i] -> weight);
     }
-    /*
-    //Old approach. Traverses the entire tree. The new one checks just the children and seems to work just as well.
-    std::queue<boost::shared_ptr<QuadPoint> > q;
-    q.push(point);
-    while(!q.empty())
-        {
-            boost::shared_ptr<QuadPoint> c(q.front());
-            q.pop();
-        cout << "Depth " << c -> level << endl;
-            if (c -> children.size() > 0)
-                {
-                    for (unsigned int i =0; i < c -> children.size(); i++)
-                        {   //error is here
-    		  cout << "pushed" << endl;
-
-    		   q.push(c -> children[i]);
-    		   cout << "yep" << endl;
-                        }
-                }
-            else
-                {
-                    acc(c -> weight);
-
-                }
-        }*/
 
     return boost::accumulators::variance(acc);
 }
