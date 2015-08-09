@@ -47,13 +47,13 @@ params.ActivationFunction_Linear_Prob = 0.25
 
 params.DivisionThreshold = 0.3
 params.VarianceThreshold = 0.03
-params.BandThreshold = 0.3
+params.BandThreshold = 0.15
 params.InitialDepth = 3
 params.MaxDepth = 4
 params.IterationLevel = 1
 params.Leo = True
-params.GeometrySeed = True
-params.LeoSeed = True
+params.GeometrySeed = False
+params.LeoSeed = False
 params.LeoThreshold = 0.
 params.CPPN_Bias = -3.0
 params.Qtree_X = 0.0
