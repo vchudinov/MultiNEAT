@@ -331,12 +331,7 @@ void NSGAPopulation::NSGASort()
 
     //4. Sort
     std::sort(m_Genomes.begin(), m_Genomes.end(), CrowdComparison);
-   cout << "Fronts: " << fronts.size() << endl;
-   for (unsigned int i = 0; i < 10; i++)
-    {
-      cout << m_Genomes[i].multifitness[0] << " | "<< m_Genomes[i].multifitness[1] << " | "<< m_Genomes[i].multifitness[2] <<" | " <<  m_Genomes[i].rank << " | " <<  m_Genomes[i].distance <<   endl;
-    }
-    cout << "-------------------------------------------"<<endl;
+  
 
 }
 

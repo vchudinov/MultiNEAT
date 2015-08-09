@@ -9,7 +9,7 @@ import cv2
 import utilities
 
 params = NEAT.Parameters()
-params.PopulationSize = 100
+params.PopulationSize = 200
 params.DynamicCompatibility = True
 params.CompatTreshold = 1.0
 params.YoungAgeTreshold = 15
@@ -151,7 +151,7 @@ def getbest(run, filename):
         print "Generation: ", generation
 
         genome_list = pop.Genomes
-        fitnesses = NEAT.EvaluateGenomeList_Serial(genome_list, evaluate_xor, display = False)
+        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_xor, display = False, cores = 4)
         [genome.SetMultiFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
         [genome.SetLength(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
         best = pop.GetLeader()
