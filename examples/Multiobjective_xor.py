@@ -45,9 +45,9 @@ params.ActivationFunction_UnsignedSine_Prob = 0.0
 params.ActivationFunction_Linear_Prob = 0.25
 
 
-params.DivisionThreshold = 0.
-params.VarianceThreshold = 0.0
-params.BandThreshold = 0.
+params.DivisionThreshold = 0.3
+params.VarianceThreshold = 0.03
+params.BandThreshold = 0.3
 params.InitialDepth = 3
 params.MaxDepth = 4
 params.IterationLevel = 1

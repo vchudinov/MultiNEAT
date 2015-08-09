@@ -161,9 +161,16 @@ bool CrowdComparison(Genome ls, Genome rs)
     return (ls.rank < rs.rank || (ls.rank == rs.rank && ls.distance > rs.distance));
 }
 
-bool NSGAPopulation::StochasticCrowdComparison(Genome ls, Genome rs)
-{
-  return (StochasticDominate(ls, rs) || (!StochasticDominate(rs,ls) && ls.distance > rs.distance));
+bool NSGAPopulation::StochasticCrowdComparison(Genome& ls, Genome& rs)
+{     RNG t_RNG;
+      t_RNG.TimeSeed();
+
+      if (StochasticDominate(ls, rs, t_RNG.RandFloat()))
+        return true;
+      else
+      {
+        return  ls.distance > rs.distance;
+      }
 }
 
 void NSGAPopulation::Sort()
@@ -191,7 +198,7 @@ void NSGAPopulation::Epoch()
     ///////////////////
     // Preparation
     ///////////////////
-    AdjustFitness();
+    //AdjustFitness();
 
     // Incrementing the global stagnation counter, we can check later for global stagnation
     m_GensSinceBestFitnessLastChanged++;
@@ -266,52 +273,22 @@ void NSGAPopulation::Epoch()
         m_InnovationDatabase.Flush();
 }
 
-
-Genome& NSGAPopulation::AccessGenomeByIndex(unsigned int const a_idx)
-{
-    ASSERT(a_idx < m_Genomes.size());
-
-    // not found?! return dummy
-    return m_Genomes[a_idx];
-}
-
-Genome NSGAPopulation::RemoveWorstIndividual()
-{
-    unsigned int t_worst_idx=0;
-    double   t_worst_fitness = std::numeric_limits<double>::max();
-
-    Genome t_genome;
-
-    for(unsigned int i=0; i<m_Genomes.size(); i++)
-    {
-       double t_adjusted_fitness = m_Genomes[i].GetMultiFitness()[0];
-        // only only evaluated individuals can be removed
-        if ((t_adjusted_fitness < t_worst_fitness) && (m_Genomes[i].IsEvaluated()))
-        {
-            t_worst_fitness = t_adjusted_fitness;
-            t_worst_idx = i;
-            t_genome = m_Genomes[i];
-        }
-            //t_abs_counter++;
-
-    }
-
-    // The individual is now removed
-    RemoveIndividual(t_worst_idx);
-
-    return t_genome;
-}
-
 void NSGAPopulation::GenomicDiversity() // It is actually O(n*n)
 {
   for (unsigned int i = 0; i < m_Genomes.size(); i++)
   {
       double diversity_sum = 0.0;
-      double old_min = -1;
-      double min = std::numeric_limits<double>::infinity();
-      double temp_min = 0.0;
-
-      for (unsigned int j = 0; j< m_Parameters.MaxSpecies; j++)
+      //double old_min = -1;
+    //  double min = std::numeric_limits<double>::infinity();
+  //
+  //    double temp_min = 0.0;
+      for (unsigned int k = 0; k < m_Genomes.size(); k++)
+      {
+        if (i != k)
+        {
+          diversity_sum +=  m_Genomes[i].CompatibilityDistance(m_Genomes[k], m_Parameters);}
+       }
+    /*  for (unsigned int j = 0; j< m_Parameters.MaxSpecies; j++)
       {
           for (unsigned int k = 0; k < m_Genomes.size(); k++)
           {
@@ -330,8 +307,8 @@ void NSGAPopulation::GenomicDiversity() // It is actually O(n*n)
           old_min = min;
           min = std::numeric_limits<double>::infinity();
        }
-
-      m_Genomes[i].multifitness.insert(m_Genomes[i].multifitness.begin(), diversity_sum/m_Parameters.MaxSpecies);
+*/
+      m_Genomes[i].multifitness.insert(m_Genomes[i].multifitness.begin(), diversity_sum/m_Parameters.PopulationSize);
 
     }
 }
@@ -354,34 +331,40 @@ void NSGAPopulation::NSGASort()
 
     //4. Sort
     std::sort(m_Genomes.begin(), m_Genomes.end(), CrowdComparison);
-    /*for (unsigned int i = 0; i < m_Genomes.size(); i++)
+   cout << "Fronts: " << fronts.size() << endl;
+   for (unsigned int i = 0; i < 10; i++)
     {
       cout << m_Genomes[i].multifitness[0] << " | "<< m_Genomes[i].multifitness[1] << " | "<< m_Genomes[i].multifitness[2] <<" | " <<  m_Genomes[i].rank << " | " <<  m_Genomes[i].distance <<   endl;
     }
     cout << "-------------------------------------------"<<endl;
-*/
+
 }
 
 void NSGAPopulation::PrimaryRanking(std::vector<std::vector<Genome*> > &fronts)
 {   std::vector<Genome*> zero;
+    RNG t_RNG;
+    t_RNG.TimeSeed();
 
     for(unsigned int p = 0;  p < m_Genomes.size(); p++)
     {
         m_Genomes[p].dominated.clear();
         m_Genomes[p].dominated.reserve(m_Genomes.size());
+        m_Genomes[p].tempRank = 0;
+        m_Genomes[p].distance = 0;
 
 
         for(unsigned int q = 0; q < m_Genomes.size(); q++)
         {
             if (p!=q)
-            {
-                if ( StochasticDominate( m_Genomes[p], m_Genomes[q] ) )
+            {   double z = t_RNG.RandFloat();
+                if ( StochasticDominate( m_Genomes[p], m_Genomes[q], z ) )
                 {
                     m_Genomes[p].dominated.push_back(&m_Genomes[q]);
+                    //m_Genomes[q].tempRank++;
                 }
-                else if (StochasticDominate(m_Genomes[q],m_Genomes[p]))
+                else if(StochasticDominate( m_Genomes[q], m_Genomes[p], z ))
                 {
-                    m_Genomes[p].tempRank++;
+                  m_Genomes[p].tempRank++;
                 }
             }
         }
@@ -405,7 +388,7 @@ void NSGAPopulation::SecondaryRanking(std::vector<std::vector<Genome*> >& fronts
         for(unsigned int p = 0; p < current.size(); p++)
         {
             for(unsigned int q = 0; q < current[p] -> dominated.size();q++)
-            {   //chck chcks
+            {
                 current[p] -> dominated[q] -> tempRank--;
                 if( current[p] -> dominated[q] -> tempRank == 0)
                 {
@@ -417,7 +400,6 @@ void NSGAPopulation::SecondaryRanking(std::vector<std::vector<Genome*> >& fronts
         }
         fronts.push_back(next);
         counter++;
-
         current = fronts[counter];
     }
 }
@@ -426,38 +408,42 @@ void NSGAPopulation::AssignDistance(std::vector<std::vector<Genome*> > &fronts)
 {     RNG t_RNG;
      t_RNG.TimeSeed();
     for (unsigned int i = 0; i < fronts.size(); i++)
-    {   if (fronts[i].size() == 0)
+    {   if (fronts[i].size() == 0 || fronts[i][0] -> multifitness.size() == 0)
         {
             return;
         }
-
-        for(unsigned int j = 0; j < fronts[i].size(); j++)
+        if (fronts[i].size() == 1)
         {
-          fronts[i][j] -> distance = 0.0;
+          fronts[i][0] -> distance = std::numeric_limits<double>::infinity();
+          continue;
         }
-
-        if (fronts[i][0] -> multifitness.size() == 0)
+        if (fronts[i].size() == 2)
         {
-          for (unsigned int j = 1; j < fronts[i].size() -1; j++ )
-          {
-              fronts[i][j] -> distance = 0.0;
-          }
-          return;
+          fronts[i][0] -> distance = std::numeric_limits<double>::infinity();
+          fronts[i][1 ] -> distance = std::numeric_limits<double>::infinity();
+          continue;
         }
 
         for (unsigned int k = 0; k < fronts[i][0] -> multifitness.size(); k++)
         {
-            quickSort(fronts[i], 0, fronts[i].size() -1, k);
 
-            fronts[i][0] -> distance = std::numeric_limits<double>::infinity();
-            fronts[i][fronts[i].size() - 1 ] -> distance = std::numeric_limits<double>::infinity();
-            if (fronts[i].size() < 4)
-              { continue;}
 
-            for (unsigned int j = 1; j < fronts[i].size() - 2; j++ ) // HERESY!
-            {
-                fronts[i][j] -> distance = fronts[i][j+1] -> multifitness[k] - fronts[i][j - 1] -> multifitness[k];
-            }
+          quickSort(fronts[i], 0, fronts[i].size() -1, k);
+
+          fronts[i][0] -> distance = std::numeric_limits<double>::infinity();
+          fronts[i][fronts[i].size() - 1 ] -> distance = std::numeric_limits<double>::infinity();
+
+          for (unsigned int j = 1; j < fronts[i].size() -1 ; j++ ) // HERESY!
+          {   if   (fronts[i][j+1] -> multifitness[k]  ==  fronts[i][j - 1] -> multifitness[k])
+              {
+                  fronts[i][j] -> distance += 0;
+              }
+              else
+              {
+                double top = fronts[i][j+1] -> multifitness[k] - fronts[i][j - 1] -> multifitness[k];
+                fronts[i][j] -> distance += top / (fronts[i][fronts[i].size() -1] -> multifitness[k] - fronts[i][0] -> multifitness[k]);
+              }
+          }
         }
     }
 }
@@ -470,9 +456,9 @@ void NSGAPopulation::quickSort(std::vector<Genome*>& front, int left, int right,
       /* partition */
     while (i <= j)
     {
-    while (front[i] -> multifitness[index] < pivot -> multifitness[index])
+    while (front[i] -> multifitness[index] > pivot -> multifitness[index])
           i++;
-    while (front[j] -> multifitness[index] > pivot -> multifitness[index])
+    while (front[j] -> multifitness[index] < pivot -> multifitness[index])
           j--;
     if (i <= j)
     {
@@ -490,7 +476,7 @@ void NSGAPopulation::quickSort(std::vector<Genome*>& front, int left, int right,
         quickSort(front, i, right, index);
 }
 
-bool NSGAPopulation::StochasticDominate(Genome ls, Genome rs)
+bool NSGAPopulation::StochasticDominate(Genome& ls, Genome& rs, double p)
 {
      if (probabilities.size() == 0)
           {
@@ -498,26 +484,28 @@ bool NSGAPopulation::StochasticDominate(Genome ls, Genome rs)
           }
 
      int count = 0.0;
-     RNG t_RNG;
-     t_RNG.TimeSeed();
-     for (unsigned int i = 0; i <ls.multifitness.size(); i++)
+     for (unsigned int i = 0; i < ls.multifitness.size(); i++)
      {
+        if (p > probabilities[i])
+        {
+          continue;
+        }
 
-       if (t_RNG.RandFloat() > probabilities[i])
-      {  continue; }
-
-      else if (ls.multifitness[i] < rs.multifitness[i])
-      {   return false; }
-
-      else if (ls.multifitness[i] > rs.multifitness[i])
-      {    count ++;    }
+        if (ls.multifitness[i] < rs.multifitness[i])
+        {
+          return false;
+        }
+        else if (ls.multifitness[i] > rs.multifitness[i])
+        {
+          count ++;
+        }
     }
 
     return count > 0;
 
 }
 
-bool NSGAPopulation::Dominate(Genome ls, Genome rs)
+bool NSGAPopulation::Dominate(Genome& ls, Genome& rs)
 {
     int count = 0.0;
     for (unsigned int i = 0; i < ls.multifitness.size(); i++)
@@ -539,7 +527,7 @@ void NSGAPopulation::Reproduce(std::vector<Genome> &tempPop)
 
     int elite_offspring = Rounded(m_Parameters.Elitism*m_Parameters.PopulationSize);
 
-    if (elite_offspring == 0)
+    if (elite_offspring < 1)
         elite_offspring = 1; //always have at least a champion. Also use this to turn off elitism
 
     int elite_count = 0; // elite counter
@@ -637,14 +625,12 @@ void NSGAPopulation::Reproduce(std::vector<Genome> &tempPop)
                     MutateGenome(t_baby_exists_in_pop, t_baby);
                 }
 
-
         }
-
         // Final place to test for problems
         // If there is anything wrong here, we will just
         // pick a random individual and leave him unchanged
         if ((t_baby.NumLinks() == 0) || t_baby.HasDeadEnds())
-        {
+        {   cout << "here";
             t_baby = GetIndividual();
         }
 

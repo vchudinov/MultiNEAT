@@ -38,6 +38,7 @@ std::vector<double> xortest(Genome& g, Substrate& subst, Parameters& params)
 {
 
     NeuralNetwork net;
+    std::vector<double> f;
     //g.BuildHyperNEATPhenotype(net, subst);
     g.Build_ES_Phenotype(net, subst, params);
 
@@ -78,7 +79,7 @@ std::vector<double> xortest(Genome& g, Substrate& subst, Parameters& params)
     for(int i=0; i<depth; i++) { net.Activate(); }
     error += abs(net.Output()[0] - 0.0);
 
-    std::vector<double> f;
+
     f.push_back((4.0 - error)*(4.0 - error));
     f.push_back(net.GetTotalConnectionLength());
 
@@ -97,7 +98,7 @@ int main()
     params.SpeciesMaxStagnation = 100;
     params.OldAgeTreshold = 35;
     params.MinSpecies = 5;
-    params.MaxSpecies = 25;
+    params.MaxSpecies = 15;
     params.RouletteWheelSelection = false;
 
     params.MutateRemLinkProb = 0.02;
@@ -105,7 +106,7 @@ int main()
     params.OverallMutationRate = 0.15;
     params.MutateAddLinkProb = 0.08;
     params.MutateAddNeuronProb = 0.01;
-    params.MutateWeightsProb = 0.90;
+    params.MutateWeightsProb = 0.96;
     params.MaxWeight = 8.0;
     params.WeightMutationMaxPower = 0.2;
     params.WeightReplacementMaxPower = 1.0;
@@ -130,22 +131,22 @@ int main()
     params.ActivationFunction_UnsignedSine_Prob = 0.0;
     params.ActivationFunction_Linear_Prob = 1.0;
 
-    params.DivisionThreshold = 0.5;
+  params.DivisionThreshold = 0.5;
 	params.VarianceThreshold = 0.03;
-	params.BandThreshold = 0.3;
+	params.BandThreshold = 0.15;
 	params.InitialDepth = 2;
-	params.MaxDepth = 3;
+	params.MaxDepth = 4;
 	params.IterationLevel = 1;
-	params.Leo = false;
+	params.Leo = true;
 	params.GeometrySeed = false;
 	params.LeoSeed = false;
-	params.LeoThreshold = 0.3;
-	params.CPPN_Bias = -1.0;
+	params.LeoThreshold = 0.;
+	params.CPPN_Bias = -3.0;
 	params.Qtree_X = 0.0;
 	params.Qtree_Y = 0.0;
 	params.Width = 1.;
 	params.Height = 1.;
-	params.Elitism = 0.1;
+	params.Elitism = 0.05;
 
     RNG rng;
     std::vector< std::vector<double> > inputs;
@@ -209,7 +210,7 @@ int main()
     substrate.m_hidden_nodes_activation = SIGNED_SIGMOID;
     substrate.m_output_nodes_activation = UNSIGNED_SIGMOID;
 
-    substrate.m_link_threshold = 0.2;
+
     substrate.m_max_weight_and_bias = 8.0;
 
     Genome s(0, 7, 1, false, SIGNED_SIGMOID, SIGNED_SIGMOID,
@@ -219,9 +220,9 @@ int main()
     std::vector<double> ps;
     ps.push_back(1.0);
     ps.push_back(1.0);
-    ps.push_back(1.0);
+    ps.push_back(0.25);
     pop.SetProbabilities(ps);
-    for(int k=0; k<100; k++)
+    for(int k=0; k<10000; k++)
     {
         //std::vector<double> bestf(2,-999999);
         double bestf = -999999;

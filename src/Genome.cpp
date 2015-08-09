@@ -72,6 +72,10 @@ Genome::Genome()
     Performance = 0.0;
     Length = 0.0;
     multifitness.clear();
+    dominated.clear();
+    rank = 0;
+    tempRank = 0;
+    distance = 0;
 }
 
 
@@ -91,7 +95,11 @@ Genome::Genome(const Genome& a_G)
     m_PhenotypeBehavior = a_G.m_PhenotypeBehavior;
     Performance = a_G.Performance;
     Length = a_G.Length;
-        multifitness.clear();
+    multifitness = a_G.multifitness;
+    dominated = a_G.dominated;
+    rank = a_G.rank;
+    tempRank = a_G.rank;
+    distance = a_G.distance;
 }
 
 // assignment operator
@@ -113,7 +121,11 @@ Genome& Genome::operator =(const Genome& a_G)
         m_PhenotypeBehavior = a_G.m_PhenotypeBehavior;
         Performance = a_G.Performance;
         Length = a_G.Length;
-            multifitness.clear();
+        multifitness = a_G.multifitness;
+ dominated = a_G.dominated;
+        rank = a_G.rank;
+      tempRank = a_G.rank;
+      distance = a_G.distance;
     }
 
     return *this;
@@ -278,6 +290,10 @@ Genome::Genome(unsigned int a_ID,
     Performance = 0.0;
     Length = 0.0;
         multifitness.clear();
+         dominated.clear();
+    rank = 0;
+    tempRank = 0;
+     distance = 0;
 }
 
 
@@ -444,7 +460,12 @@ Genome::Genome(unsigned int a_ID,
     m_PhenotypeBehavior = NULL;
     Performance = 0.0;
     Length = 0.0;
-        multifitness.clear();
+    multifitness.clear();
+     dominated.clear();
+ rank = 0;
+tempRank = 0;
+ distance = 0;
+
 
 }
 
@@ -3295,6 +3316,24 @@ void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_
                 itr++;
         }
     }
+    /* bool inp = false;
+ bool outp = false;
+ std::vector<Connection>::iterator itr;
+ for (itr = connections.begin(); itr<connections.end(); itr++)
+ {
+     if (itr -> m_source_neuron_idx < input_count && !inp)
+     {
+         inp = true;
+     }
+     if (itr -> m_target_neuron_idx < input_count + output_count && itr -> m_target_neuron_idx > input_count && !outp)
+     {
+         outp = true;
+     }
+ }
+ if (!inp && !outp)
+ {
+     throw "No link between input and output";
+ }*/
 }
 
 } // namespace NEAT

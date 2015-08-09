@@ -205,17 +205,18 @@ public:
     }
 
     double GetTotalConnectionLength()
-    {   //return m_connections.size(); //The alternative approach
-       /* double total = 0;
+    { if (m_connections.size() < 2)
+      {
+        return 0.0 ;
+      }
+       //return m_connections.size(); //The alternative approach
+       double total = 0;
         for (unsigned int i = 0; i < m_connections.size(); i++)
         {
-            //std:: cout << GetConnectionLenght(m_neurons[m_connections[i].m_source_neuron_idx], m_neurons[m_connections[i].m_target_neuron_idx])<< std::endl;
 
-            total += std::pow(GetConnectionLenght(m_neurons[m_connections[i].m_source_neuron_idx], m_neurons[m_connections[i].m_target_neuron_idx]),2);
-        }
-        //std::cout <<  total << std::endl;
-        */
-        return m_connections.size();
+            total += GetConnectionLenght(m_neurons[m_connections[i].m_source_neuron_idx], m_neurons[m_connections[i].m_target_neuron_idx]);
+            }
+        return 1/total;
     }
 
     // one-shot save/load

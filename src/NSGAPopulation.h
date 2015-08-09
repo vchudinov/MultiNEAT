@@ -189,8 +189,8 @@ public:
       {
         probabilities.push_back(py::extract<double>(probs[j]));
       }
-    }
-    /*
+    }/*
+
     void SetProbabilities(std::vector <double> probs)
     {
       probabilities = probs;
@@ -250,10 +250,10 @@ public:
     void SecondaryRanking(std::vector<std::vector<Genome*> >& fronts);
     void AssignDistance(std::vector<std::vector<Genome*> > &fronts);
     void GenomicDiversity();
-  //  bool CrowdComparison(Genome ls, Genome rs);
-    bool Dominate(Genome ls, Genome rs);
-    bool StochasticDominate(Genome ls, Genome rs);
-    bool StochasticCrowdComparison(Genome ls, Genome rs);
+  //  bool CrowdComparison(Genome& ls, Genome& rs);
+    bool Dominate(Genome& ls, Genome& rs);
+    bool StochasticDominate(Genome& ls, Genome& rs, double p);
+    bool StochasticCrowdComparison(Genome& ls, Genome& rs);
 
     double mepsd(Genome* ls, Genome* rs);
     void Sort();

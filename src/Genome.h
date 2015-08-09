@@ -149,11 +149,11 @@ public:
     {
     multifitness = fitness_scores;
     }
-*/
+
     std::vector<double> GetMultiFitness()
     {
         return multifitness;
-    }
+    }*/
     // tells whether this genome was evaluated already
     // used in steady state evolution
     bool m_Evaluated;
