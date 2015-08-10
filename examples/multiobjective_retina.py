@@ -1,0 +1,326 @@
+#!/usr/bin/python
+import os
+import sys
+
+sys.path.append("/home/penguinofdoom")
+sys.path.append("/home/penguinofdoom/Projects")
+sys.path.append("/home/penguinofdoom/Projects/Retina")
+import itertools
+import numpy as np
+import MultiNEAT as NEAT
+import multiprocessing as mpc
+import os.path
+import cv2
+import utilities
+import traceback
+import scipy.stats as ss
+import gc
+import time
+# NEAT parameters
+
+params = NEAT.Parameters()
+params.PopulationSize = 300
+
+params.DynamicCompatibility = True
+params.MinSpecies = 5
+params.MaxSpecies = 15
+params.RouletteWheelSelection = False
+params.MutateRemLinkProb = 0.0
+params.RecurrentProb = 0.0
+params.OverallMutationRate = 0.0
+params.MutateAddLinkProb = 0.03
+params.MutateAddNeuronProb = 0.01
+params.MutateWeightsProb = 0.9
+params.MaxWeight = 5.0
+params.CrossoverRate = 0.25
+params.MutateWeightsSevereProb = 0.01
+params.TournamentSize = 2;
+
+# Probabilities for a particular activation functiothinner waistn appearance
+params.ActivationFunction_SignedSigmoid_Prob = 1
+params.ActivationFunction_UnsignedSigmoid_Prob = 0.0
+params.ActivationFunction_Tanh_Prob = 0.0
+params.ActivationFunction_TanhCubic_Prob = 0.0
+params.ActivationFunction_SignedStep_Prob = 0.0
+params.ActivationFunction_UnsignedStep_Prob = 0.0
+params.ActivationFunction_SignedGauss_Prob = 1
+params.ActivationFunction_UnsignedGauss_Prob = 0.0
+params.ActivationFunction_Abs_Prob = 1
+params.ActivationFunction_SignedSine_Prob = 1
+params.ActivationFunction_UnsignedSine_Prob = 0.0
+params.ActivationFunction_Linear_Prob = 1
+
+
+params.DivisionThreshold = 0.5
+params.VarianceThreshold = .03
+params.BandThreshold = 0.03
+params.InitialDepth = 3
+params.MaxDepth = 4
+params.IterationLevel = 1
+params.Leo = True
+params.LeoSeed = False
+params.GeometrySeed = False
+params.LeoThreshold = 0.0
+params.CPPN_Bias = -3.0
+params.Qtree_X = 0.0
+params.Qtree_Y = 0.0
+params.Width = 1.0
+params.Height = 1.0
+
+params.Elitism = 0.1
+rng = NEAT.RNG()
+rng.TimeSeed()
+
+left_patterns = [
+[0., 0., 0., 0.],
+[0., 0., 0., 1,],
+[0., 1., 0., 1.],
+[0., 1., 0., 0.],
+[0., 1., 1., 1.],
+[0., 0., 1., 0.],
+[1., 1., 0., 1.],
+[1., 0., 0., 0.]
+]
+
+right_patterns = [
+[0., 0., 0., 0],
+[1., 0., 0.,0.],
+[1., 0., 1., 0.],
+[0., 0., 1., 0],
+[1., 1., 1., 0.],
+[0., 1., 0., 0.,],
+[1., 0., 1., 1.],
+[0., 0., 0., 1]
+]
+possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
+print len(possible_inputs)
+#'''
+substrate = NEAT.Substrate(
+        [(-1.0,-1.0, 1.0),(-.33,-1.0,1.0),(0.33,-1.0,1.0),(1.0,-1.0,1.0),
+        (-1.0,-1.0,-1.0), (-0.33,-1.0,-1.0),(0.33,-1.0,-1.0),(1.0,-1.0,-1.0),
+        (0.0,-1.0,0.0)],
+        [(-1.0,0.36, 1.0),(-.33,0.36,1.0),(0.33,0.36,1.0),(1.0,0.36,1.0),
+        (-1.0,0.61,-1.0), (-0.33,0.61,-1.0),(0.33,0.61,-1.0),(1.0,0.61,-1.0)],
+        [(0.0,1.0,0.0)] #(-1.,1,0),(1,1,0)]
+        )
+#,(0.0,1.0,0.0)] #
+'''
+substrate = NEAT.Substrate(
+        [(-1.0,-1.0, 1.0),(-1.,1.0, 1.0),(-0.33,-1,1.0),(-0.33,1,1.0),
+        (0.33,-1.0,1.0), (0.33,1.,1.0),(1.0,-1.0,1.0),(1.0,1.0,1.0),
+        (-1.0,-1.0,-1.0)],
+        [],
+        [(0.0,-1,0),(0,1,0)]
+        )
+#'''
+substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID
+substrate.m_output_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID
+
+substrate.m_allow_input_hidden_links = False
+substrate.m_allow_input_output_links = False
+substrate.m_allow_hidden_hidden_links = False
+substrate.m_allow_hidden_output_links = False
+substrate.m_allow_output_hidden_links = False
+substrate.m_allow_output_output_links = False
+substrate.m_allow_looped_hidden_links = False
+substrate.m_allow_looped_output_links = False
+
+substrate.m_allow_input_hidden_links = True
+substrate.m_allow_input_output_links = False
+substrate.m_allow_hidden_output_links = True
+substrate.m_allow_hidden_hidden_links = True
+# when to output a link and max weight
+substrate.m_link_threshold = 0.0
+substrate.m_max_weight_and_bias = 8.0
+# when to output a link and max weight
+
+def evaluate_retina_and(genome):
+    error = 0
+    correct = 0.
+
+    try:
+        net = NEAT.NeuralNetwork();
+        start_time = time.time()
+        genome.Build_ES_Phenotype(net, substrate, params)
+        end_time = time.time() - start_time
+        left = False
+        right = False
+
+        for i in possible_inputs:
+
+            left = i[0:4] in left_patterns
+            right = i[4:] in right_patterns
+            inp = i[:]
+            inp.append(-1)
+
+            net.Flush()
+            net.Input(inp)
+            [net.Activate() for _ in range(5)]
+            output = net.Output()
+
+            if (left and right):
+                error += abs(1.0 - output[0])
+                if output[0] > 0.:
+                    correct +=1.
+
+            else:
+                error += abs(-1.0 - output[0])
+                if output[0] < 0.:
+                    correct +=1.
+
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+
+    except Exception as ex:
+        print "nn ",ex
+        return (0.0, 0.0, 0.0, 0.0)
+
+
+
+def evaluate_retina_or(genome):
+    error = 0
+    correct = 0.
+
+    try:
+        net = NEAT.NeuralNetwork();
+        start_time = time.time()
+        genome.Build_ES_Phenotype(net, substrate, params)
+        end_time = time.time() - start_time
+        #genome.BuildHyperNEATPhenotype(net,substrate)
+        left = False
+        right = False
+
+        for i in possible_inputs:
+
+            left = i[0:4] in left_patterns
+            right = i[4:] in right_patterns
+            inp = i[:]
+            inp.append(-3)
+
+            net.Flush()
+            net.Input(inp)
+            [net.Activate() for _ in range(3)]
+            output = net.Output()
+
+            if (left or right):
+                error += abs(1.0 - output[0])
+                if output[0] > 0.:
+                    correct +=1.
+
+            else:
+                error += abs(1.0 - output[0])
+                if output[0] < 0.0:
+                    correct +=1.
+
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+
+    except Exception as ex:
+        print "nn ",ex
+        return (0.0, 0.0, 0.0, 0.0)
+
+def evaluate_retina_risi(genome):
+    error = 0
+    correct = 0.
+
+    try:
+        net = NEAT.NeuralNetwork()
+        genome.Build_ES_Phenotype(net, substrate, params)
+        #genome.BuildHyperNEATPhenotype(net,substrate)
+        left = False
+        right = False
+
+        for i in possible_inputs:
+
+            left = i in left_patterns
+            right = j in right_patterns
+
+            inp = i[:]
+            inp.extend(j)
+            inp.append(-3)
+
+            net.Flush()
+            net.Input(inp)
+            [net.Activate() for _ in range(5)]
+
+            output = net.Output()
+            if (left and right):
+                error += abs(1.0 - output[0])
+                error += abs(1.0 - output[1])
+
+                if output[0] > 0.0 and output[1] > 0.0:
+                    correct +=1.
+                else: # if (left and not right):
+                    error += abs(-1.0 - output[0])
+                    error += abs(-1.0 - output[1])
+
+                ''''
+                elif (left and not right):
+                    error += abs(1.0 - output[0])
+                    error += abs(-1.0 - output[1])
+
+                    if output[0] > 0.0 and output[1] <= 0.0:
+                        correct +=1.
+
+                elif right:
+                    error += abs(-1.0 - output[0])
+                    error += abs(1.0 - output[1])
+100
+                    if output[0] < 0.0 and output[1] > 0.0 ):
+                        correct +=1.
+                else:
+                    error += abs(-1.0 - output[0])
+                    error += abs(-1.0 -output[1])
+                    if output[0] < 0 and output[1] < 0):
+                        correct +=1.
+                '''
+
+        return [1000/(1+ error*error), correct/256.,net.GetTotalConnectionLength() ]
+
+    except Exception as ex:
+       # print "nn ",ex
+        return (0.0, 0.0, 0.0)
+
+def getbest(run, generations, filename):
+    g = NEAT.Genome(0, 7, 1, True, NEAT.ActivationFunction.SIGNED_SIGMOID, NEAT.ActivationFunction.SIGNED_SIGMOID,
+            params)
+
+    #pop = NEAT.Population(g, params, True, 1.0)
+    pop = NEAT.NSGAPopulation(g, params, True, 1.0)
+    pop.SetProbabilities([1.0, 0.25]);
+    results = []
+    evalt = evaluate_retina_and
+    for generation in range(generations):
+
+        genome_list = pop.Genomes
+        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, display = False, cores= 4)
+        [genome.SetMultiFitness([fitness[0], fitness[1]]) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetPerformance(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetLength(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
+        time = np.mean([fitness[3] for fitness in fitnesses])
+        max_time = max([fitness[3] for fitness in fitnesses])
+        cons = np.mean([x.Length for x in genome_list])
+        best = pop.GetLeader()
+        results.append([run,generation, best.GetMultiFitness()[0], best.Length, best.GetPerformance()])
+
+        print "---------------------------"
+        print "Generation: ", generation
+        print "Best ", best.GetMultiFitness()[0] , " Connections: ", best.Length, " Performance: ", best.GetPerformance()
+        print "Average connection count: ", cons
+        print "Build time: ", time
+        print "Max time ", max_time
+
+        generations = generation
+        if generation % 100 == 0:
+        #    evalt, old_eval = old_eval, evalt
+            utilities.dump_to_file(results, filename)
+            results = []
+            best.Save("datadump/retina_BSGA_%d_%d.gen" % ( generation, run))
+
+        pop.Epoch()
+        gc.collect()
+    return
+
+
+
+#runs = 5
+for i in range(5):
+    getbest(i,3000, "datadump/retina_NSGA.csv")
