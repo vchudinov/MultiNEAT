@@ -17,7 +17,8 @@ import time
 # NEAT parameters
 
 params = NEAT.Parameters()
-params.PopulationSize = 200
+params.PopulationSize = 300
+
 params.DynamicCompatibility = True
 params.MinSpecies = 5
 params.MaxSpecies = 15
@@ -52,13 +53,13 @@ params.DivisionThreshold = 0.5
 params.VarianceThreshold = .03
 params.BandThreshold = 0.03
 params.InitialDepth = 3
-params.MaxDepth = 5
+params.MaxDepth = 4
 params.IterationLevel = 1
 params.Leo = True
-params.LeoSeed = True
-params.GeometrySeed = True
+params.LeoSeed = False
+params.GeometrySeed = False
 params.LeoThreshold = 0.0
-params.CPPN_Bias = -1.0
+params.CPPN_Bias = -3.0
 params.Qtree_X = 0.0
 params.Qtree_Y = 0.0
 params.Width = 1.0
@@ -69,28 +70,27 @@ rng = NEAT.RNG()
 rng.TimeSeed()
 
 left_patterns = [
-[-3., -3., -3., -3.],
-[-3., -3., -3., 3,],
-[-3., 3., -3., 3.],
-[-3., 3., -3., -3.],
-[-3., 3., 3., 3.],
-[-3., -3., 3., -3.],
-[3., 3., -3., 3.],
-[3., -3., -3., -3.]
+[0., 0., 0., 0.],
+[0., 0., 0., 1,],
+[0., 1., 0., 1.],
+[0., 1., 0., 0.],
+[0., 1., 1., 1.],
+[0., 0., 1., 0.],
+[1., 1., 0., 1.],
+[1., 0., 0., 0.]
 ]
 
 right_patterns = [
-[-3., -3., -3., -3],
-[3., -3., -3.,-3.],
-[3., -3., 3., -3.],
-[-3., -3., 3., -3],
-[3., 3., 3., -3.],
-[-3., 3., -3., -3.,],
-[3., -3., 3., 3.],
-[-3., -3., -3., 3]
+[0., 0., 0., 0],
+[1., 0., 0.,0.],
+[1., 0., 1., 0.],
+[0., 0., 1., 0],
+[1., 1., 1., 0.],
+[0., 1., 0., 0.,],
+[1., 0., 1., 1.],
+[0., 0., 0., 1]
 ]
-possible_inputs = [list(x) for x in itertools.product([3, -3], repeat = 8)]
-print len(possible_inputs)
+possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
 # Substrate for Huzinga et al. (2014)
 #'''
 substrate = NEAT.Substrate(
@@ -129,12 +129,53 @@ substrate.m_allow_input_output_links = False
 substrate.m_allow_hidden_output_links = True
 substrate.m_allow_hidden_hidden_links = True
 # when to output a link and max weight
-substrate.m_link_threshold = 0.2
+substrate.m_link_threshold = 0.
 substrate.m_max_weight_and_bias = 8.0
 # when to output a link and max weight
 
-# Use with single output
 def evaluate_retina_and(genome):
+    error = 0
+    correct = 0.
+
+    try:
+        net = NEAT.NeuralNetwork();
+        start_time = time.time()
+        genome.Build_ES_Phenotype(net, substrate, params)
+        end_time = time.time() - start_time
+        left = False
+        right = False
+
+        for i in possible_inputs:
+
+            left = i[0:4] in left_patterns
+            right = i[4:] in right_patterns
+            inp = i[:]
+            inp.append(-1)
+
+            net.Flush()
+            net.Input(inp)
+            [net.Activate() for _ in range(5)]
+            output = net.Output()
+
+            if (left and right):
+                error += abs(1.0 - output[0])
+                if output[0] > 0.:
+                    correct +=1.
+
+            else:
+                error += abs(-1.0 - output[0])
+                if output[0] < 0.:
+                    correct +=1.
+
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+
+    except Exception as ex:
+        print "nn ",ex
+        return (0.0, 0.0, 0.0, 0.0)
+
+
+
+def evaluate_retina_or(genome):
     error = 0
     correct = 0.
 
@@ -156,50 +197,6 @@ def evaluate_retina_and(genome):
 
             net.Flush()
             net.Input(inp)
-            [net.Activate() for _ in range(5)]
-           # net.ActivateFast()
-            output = net.Output()
-
-            if (left and right):
-                error += abs(1.0 - output[0])
-
-                if output[0] > 0.5: #and output[1] > 0):
-                    correct +=1.
-
-            else:
-                error += abs(0.0 - output[0])
-                if output[0] < 0.5  and output[0] > 0.000000001:
-                    correct +=1.
-
-        return [1000/(1+ error*error), correct/256.,net.GetTotalConnectionLength(), end_time ]
-
-    except Exception as ex:
-        print "nn ",ex
-        return (0.0, 0.0, 0.0, 0.0)
-
-
-#Use with single output
-def evaluate_retina_or(genome):
-    error = 0
-    correct = 0.
-
-    try:
-        net = NEAT.NeuralNetwork();
-        start_time = time.time()
-        genome.Build_ES_Phenotype(net, substrate, params)
-        end_time = time.time() - start_time
-        left = False
-        right = False
-
-        for i in possible_inputs:
-
-            left = i[0:4] in left_patterns
-            right = i[4:] in right_patterns
-            inp = i[:]
-            inp.append(-3)
-
-            net.Flush()
-            net.Input(inp)
             [net.Activate() for _ in range(3)]
             output = net.Output()
 
@@ -209,23 +206,25 @@ def evaluate_retina_or(genome):
                     correct +=1.
 
             else:
-                error += abs(-1.0 - output[0])
-                if output[0] < 0.:
+                error += abs(1.0 - output[0])
+                if output[0] < 0.0:
                     correct +=1.
 
-        return [1000/(1+ error*error), correct/256.,net.GetTotalConnectionLength(), end_time ]
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
 
     except Exception as ex:
         print "nn ",ex
         return (0.0, 0.0, 0.0, 0.0)
-# Use with two outputs
+
 def evaluate_retina_double(genome):
     error = 0
     correct = 0.
 
     try:
-        net = NEAT.NeuralNetwork()
+        net = NEAT.NeuralNetwork();
+        start_time = time.time()
         genome.Build_ES_Phenotype(net, substrate, params)
+        end_time = time.time() - start_time
         #genome.BuildHyperNEATPhenotype(net,substrate)
         left = False
         right = False
@@ -270,11 +269,12 @@ def evaluate_retina_double(genome):
                 if output[0] < 0 and output[1] < 0:
                     correct +=1.
 
-        return [1000/(1+ error*error), correct/256.,net.GetTotalConnectionLength() ]
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
 
     except Exception as ex:
        # print "nn ",ex
-        return (0.0, 0.0, 0.0)
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+
 
 def getbest(run, generations):
     g = NEAT.Genome(0, 7, 1, True, NEAT.ActivationFunction.SIGNED_SIGMOID, NEAT.ActivationFunction.SIGNED_SIGMOID,
@@ -284,7 +284,7 @@ def getbest(run, generations):
     for generation in range(generations):
 
         genome_list = NEAT.GetGenomeList(pop)
-        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_or, display = False, cores= 4)
+        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, display = False, cores= 4)
         [genome.SetFitness(fitness[0]) for genome, fitness in zip(genome_list, fitnesses)]
         [genome.SetPerformance(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
         [genome.SetLength(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
@@ -309,4 +309,4 @@ def getbest(run, generations):
 
 #runs = 5
 for i in range(5):
-    getbest(i,5000)
+    getbest(i,10000)
