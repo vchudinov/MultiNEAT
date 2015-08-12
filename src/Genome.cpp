@@ -302,7 +302,7 @@ Genome::Genome(unsigned int a_ID,
 Genome::Genome(unsigned int a_ID,
                unsigned int a_NumInputs,
                unsigned int a_NumOutputs,
-               bool empty,
+     		bool empty,
                ActivationFunction a_OutputActType,
                ActivationFunction a_HiddenActType,
                const Parameters& a_Parameters)
@@ -345,7 +345,7 @@ Genome::Genome(unsigned int a_ID,
                       (a_Parameters.MinActivationB + a_Parameters.MaxActivationB)/2.0f,
                       (a_Parameters.MinNeuronTimeConstant + a_Parameters.MaxNeuronTimeConstant)/2.0f,
                       (a_Parameters.MinNeuronBias + a_Parameters.MaxNeuronBias)/2.0f,
-                      UNSIGNED_STEP);
+                      SIGNED_STEP);
         m_NeuronGenes.push_back( t_ngene );
         t_nnum++;
         a_NumOutputs++;
@@ -366,24 +366,18 @@ Genome::Genome(unsigned int a_ID,
         t_ngene.m_SplitY = 0.5;
         m_NeuronGenes.push_back( t_ngene );
         t_nnum++;
-        // y1 and y2 coords
+        // x1 and x2 coords
         m_LinkGenes.push_back( LinkGene(2, a_NumInputs+a_NumOutputs + hid, t_innovnum, 1, false) );
         t_innovnum++;
 
         m_LinkGenes.push_back( LinkGene(5, a_NumInputs+a_NumOutputs + hid, t_innovnum, -1 , false) );
         t_innovnum++;
 
-
-
-        m_LinkGenes.push_back( LinkGene(a_NumInputs+a_NumOutputs + hid, a_NumInputs + hid, t_innovnum, 1.0, false) );
-        t_innovnum++;
-
-
         // connect bias to GeoSeed
-        m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs + hid , t_innovnum, 0.33 , false) );
+        m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs + hid, t_innovnum, -0.33 , false) );
         t_innovnum++;
-
     }
+
     if (a_Parameters.LeoSeed)
     {
         hid++;
@@ -408,46 +402,29 @@ Genome::Genome(unsigned int a_ID,
         m_LinkGenes.push_back( LinkGene(4, a_NumInputs+a_NumOutputs + hid, t_innovnum, -1 , false) );
         t_innovnum++;
 
-        //connect gaussian node
-        //weight = t_RNG.RandFloatClamped()*a_Parameters.MaxWeight;
-        m_LinkGenes.push_back( LinkGene(a_NumInputs+a_NumOutputs + hid, a_NumInputs+a_NumOutputs, t_innovnum, 1.0, false) );
-        t_innovnum++;
+   }
 
 
-
-    }
+   	// Connect bias to LEo
+    m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs , t_innovnum, -1.0 , false) );
+    t_innovnum++;
     //Genome with only bias connected
-    if (empty)
-    {
-        if (a_Parameters.Leo && a_Parameters.LeoSeed) // Connect bias to LEO.
-        {
-            //weight = t_RNG.RandFloatClamped()*a_Parameters.MaxWeight;
-
-            m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs , t_innovnum, 1.0 , false) );
-            t_innovnum++;
-        }
-
-        else
-        {
-            for(unsigned int i=0; i < (a_NumOutputs); i++)
-            {
-                weight = t_RNG.RandFloatClamped()*a_Parameters.MaxWeight;
-
-                m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+i+1 , t_innovnum, weight , false) );
-                t_innovnum++;
-            }
-        }
-    }
-    // Or just buld a fully connected minimal genome, eh?
-    else
-    {
-        //connect x1 and x2 to gaussian. Obviously need to get rid oft he hardcoded values.
-        m_LinkGenes.push_back( LinkGene(1, a_NumInputs+1, t_innovnum, 1, false) );
+    // links to output
+   if (a_Parameters.GeometrySeed)
+   {		// connect geomtry seed to output
+        m_LinkGenes.push_back( LinkGene(a_NumInputs+a_NumOutputs + 1, a_NumInputs + 1, t_innovnum, 1.0, false) );
         t_innovnum++;
 
-        m_LinkGenes.push_back( LinkGene(4, a_NumInputs+1, t_innovnum, -1 , false) );
+   }
+   if (a_Parameters.LeoSeed)
+   {      //connect locality node to LEO
+        //weight = t_RNG.RandFloatClamped()*a_Parameters.MaxWeight;
+        m_LinkGenes.push_back( LinkGene(a_NumInputs+a_NumOutputs + 2, a_NumInputs+a_NumOutputs, t_innovnum, 1.0, false) );
         t_innovnum++;
-    }
+
+   }
+
+
 
     // setup final properties
     m_Evaluated = false;
