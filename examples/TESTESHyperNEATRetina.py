@@ -10,14 +10,14 @@ import numpy as np
 import MultiNEAT as NEAT
 import multiprocessing as mpc
 import os.path
-import cv2
+#import cv2
 import Utilities
 import traceback
 import time
 # NEAT parameters
 
 params = NEAT.Parameters()
-params.PopulationSize = 300
+params.PopulationSize = 200
 
 params.DynamicCompatibility = True
 params.MinSpecies = 5
@@ -35,31 +35,31 @@ params.MutateWeightsSevereProb = 0.01
 params.TournamentSize = 2;
 
 # Probabilities for a particular activation functiothinner waistn appearance
-params.ActivationFunction_SignedSigmoid_Prob = 1
+params.ActivationFunction_SignedSigmoid_Prob = 0.16
 params.ActivationFunction_UnsignedSigmoid_Prob = 0.0
 params.ActivationFunction_Tanh_Prob = 0.0
 params.ActivationFunction_TanhCubic_Prob = 0.0
 params.ActivationFunction_SignedStep_Prob = 0.0
 params.ActivationFunction_UnsignedStep_Prob = 0.0
-params.ActivationFunction_SignedGauss_Prob = 1
+params.ActivationFunction_SignedGauss_Prob = 0.16
 params.ActivationFunction_UnsignedGauss_Prob = 0.0
-params.ActivationFunction_Abs_Prob = 1
-params.ActivationFunction_SignedSine_Prob = 1
+params.ActivationFunction_Abs_Prob = 0.16
+params.ActivationFunction_SignedSine_Prob = 0.16
 params.ActivationFunction_UnsignedSine_Prob = 0.0
-params.ActivationFunction_Linear_Prob = 1
+params.ActivationFunction_Linear_Prob = 0.16
 
 
 params.DivisionThreshold = 0.5
 params.VarianceThreshold = .03
 params.BandThreshold = 0.03
 params.InitialDepth = 3
-params.MaxDepth = 4
+params.MaxDepth = 5
 params.IterationLevel = 1
 params.Leo = True
-params.LeoSeed = False
-params.GeometrySeed = False
+params.LeoSeed = True
+params.GeometrySeed = True
 params.LeoThreshold = 0.0
-params.CPPN_Bias = -3.0
+params.CPPN_Bias = 1.0
 params.Qtree_X = 0.0
 params.Qtree_Y = 0.0
 params.Width = 1.0
@@ -113,7 +113,7 @@ substrate = NEAT.Substrate(
         )
 #'''
 substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID
-substrate.m_output_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID
+substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID
 
 substrate.m_allow_input_hidden_links = False
 substrate.m_allow_input_output_links = False
@@ -129,7 +129,7 @@ substrate.m_allow_input_output_links = False
 substrate.m_allow_hidden_output_links = True
 substrate.m_allow_hidden_hidden_links = True
 # when to output a link and max weight
-substrate.m_link_threshold = 0.
+substrate.m_link_threshold = 0.2
 substrate.m_max_weight_and_bias = 8.0
 # when to output a link and max weight
 
@@ -141,6 +141,9 @@ def evaluate_retina_and(genome):
         net = NEAT.NeuralNetwork();
         start_time = time.time()
         genome.Build_ES_Phenotype(net, substrate, params)
+        if not net.IntegrityCheck():
+	  return (0.0, 0.0, 0.0, 0.0)
+	
         end_time = time.time() - start_time
         left = False
         right = False
@@ -159,12 +162,12 @@ def evaluate_retina_and(genome):
 
             if (left and right):
                 error += abs(1.0 - output[0])
-                if output[0] > 0.:
+                if output[0] > 0.55:
                     correct +=1.
 
             else:
-                error += abs(-1.0 - output[0])
-                if output[0] < 0.:
+                error += abs(output[0])
+                if output[0] < 0.45 and output[0] > 0.0000000000001:
                     correct +=1.
 
         return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
@@ -284,7 +287,7 @@ def getbest(run, generations):
     for generation in range(generations):
 
         genome_list = NEAT.GetGenomeList(pop)
-        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, display = False, cores= 4)
+        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, display = False, cores= 6)
         [genome.SetFitness(fitness[0]) for genome, fitness in zip(genome_list, fitnesses)]
         [genome.SetPerformance(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
         [genome.SetLength(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
@@ -309,4 +312,4 @@ def getbest(run, generations):
 
 #runs = 5
 for i in range(5):
-    getbest(i,10000)
+    getbest(i,8001)

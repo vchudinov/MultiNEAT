@@ -218,6 +218,35 @@ public:
             }
         return 1/total;
     }
+    
+    bool IntegrityCheck()
+{ std::vector<bool> connected_inputs;
+  connected_inputs.clear();
+  connected_inputs.reserve(m_num_inputs);
+  for (unsigned int i =0; i < m_num_inputs; i++)
+  {
+    bool check = false;
+    for (unsigned int j = 0; j < m_connections.size(); j++)
+    {
+      if (m_connections[j].m_source_neuron_idx == i)
+      {
+	if (!check)
+	  check = true;
+	else
+	  continue;
+      }
+    }
+    connected_inputs.push_back(check);
+  }
+  
+  for(unsigned int i = 0; i < m_num_inputs; i++)
+  {
+    if (connected_inputs[i] == false)
+      return false;
+  }
+  
+  return true;
+}
 
     // one-shot save/load
     void Save(const char* a_filename);
