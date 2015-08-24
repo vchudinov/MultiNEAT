@@ -380,7 +380,7 @@ Genome::Genome(unsigned int a_ID,
 
 
         // connect bias to GeoSeed
-        m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs + hid , t_innovnum, 0.33 , false) );
+        m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs + hid , t_innovnum, -0.33 , false) );
         t_innovnum++;
 
     }
@@ -423,7 +423,7 @@ Genome::Genome(unsigned int a_ID,
         {
             //weight = t_RNG.RandFloatClamped()*a_Parameters.MaxWeight;
 
-            m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs , t_innovnum, 1.0 , false) );
+            m_LinkGenes.push_back( LinkGene(a_NumInputs, a_NumInputs+a_NumOutputs , t_innovnum, -1.0 , false) );
             t_innovnum++;
         }
 
@@ -721,8 +721,8 @@ void Genome::BuildHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst)
     t_temp_phenotype.Flush();
 
     // now loop over every potential connection in the substrate and take its weight
-    CalculateDepth();
-    int dp = GetDepth();
+    //CalculateDepth();
+    int dp = 5; //GetDepth();
 
     // only incoming connections, so loop only the hidden and output neurons
     for(unsigned int i=net.NumInputs(); i<net.m_neurons.size(); i++)
@@ -856,7 +856,7 @@ void Genome::BuildHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst)
             Clamp(t_weight, -1, 1);
 
             double t_abs_weight = (t_weight < 0)? -t_weight : t_weight;
-            if (t_abs_weight > subst.m_link_threshold)
+            if (t_temp_phenotype.Output()[1] > 0.0)
             {
                 // now this weight will be scaled
                 if (t_weight < 0)
@@ -2831,10 +2831,7 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
         //root.reset();    // release root
 
         for(unsigned int j = 0; j < TempConnections.size(); j++)
-        {   if (std::abs(TempConnections[j].weight*subst.m_max_weight_and_bias) < subst.m_link_threshold)
-                continue;
-
-            // Find the hidden node in the hidden nodes. If it is not there add it.
+        {   // Find the hidden node in the hidden nodes. If it is not there add it.
             if ( hidden_nodes.find(TempConnections[j].target) == hidden_nodes.end())
             {
                 target_index = hidden_counter++;
@@ -2849,7 +2846,7 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
             Connection tc;
             tc.m_source_neuron_idx = i;
             tc.m_target_neuron_idx = target_index + hidden_index ;
-            tc.m_weight = TempConnections[j].weight*subst.m_max_weight_and_bias;
+            tc.m_weight = TempConnections[j].weight;
             tc.m_recur_flag = false;
 
             net.m_connections.push_back(tc);
@@ -2871,9 +2868,7 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
             //root.reset();
 
             for (unsigned int k = 0; k < TempConnections.size(); k++)
-            {   if (std::abs(TempConnections[k].weight*subst.m_max_weight_and_bias) < subst.m_link_threshold)
-                    continue;
-
+            {   
                 if (hidden_nodes.find(TempConnections[k].target) == hidden_nodes.end())
                 {
                     target_index = hidden_counter++;
@@ -2887,7 +2882,7 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
                 Connection tc;
                 tc.m_source_neuron_idx = itr_hid->second + hidden_index;  // NO!!!
                 tc.m_target_neuron_idx = target_index + hidden_index;
-                tc.m_weight = TempConnections[k].weight*subst.m_max_weight_and_bias;
+                tc.m_weight = TempConnections[k].weight;
                 tc.m_recur_flag = false;
 
                 net.m_connections.push_back(tc);
@@ -2918,9 +2913,6 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
         for(unsigned int j = 0; j < TempConnections.size(); j++)
         {
             // Make sure the link weight is above the expected threshold.
-            if (std::abs(TempConnections[j].weight*subst.m_max_weight_and_bias) < subst.m_link_threshold)
-                continue;
-
             if (hidden_nodes.find(TempConnections[j].source) != hidden_nodes.end())
             {
                 source_index = hidden_nodes.find(TempConnections[j].source) -> second;
@@ -2929,7 +2921,7 @@ void Genome::Build_ES_Phenotype(NeuralNetwork& net, Substrate& subst, Parameters
                 tc.m_source_neuron_idx = source_index + hidden_index;
                 tc.m_target_neuron_idx = i + input_count;
 
-                tc.m_weight = TempConnections[j].weight*subst.m_max_weight_and_bias;
+                tc.m_weight = TempConnections[j].weight;
                 tc.m_recur_flag = false;
 
                 net.m_connections.push_back(tc);
@@ -3195,6 +3187,18 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
                     // Normalize
                     // TODO: Put in Parameters
                     tc.weight = root -> children[i] -> weight;
+		    double t_weight = t_temp_phenotype.Output()[0];
+
+		    Clamp(tc.weight, -1, 1);
+		    if (tc.weight < 0)
+		    {
+                        Scale(tc.weight, -1, -subst.m_link_threshold, -subst.m_max_weight_and_bias, 0);
+		    }
+		    else
+		   {
+		      Scale(tc.weight, subst.m_link_threshold, 1, 0, subst.m_max_weight_and_bias);
+		    }
+		    
                     connections.push_back(tc);
                 }
             }
