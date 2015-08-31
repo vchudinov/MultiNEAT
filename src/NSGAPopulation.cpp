@@ -20,11 +20,12 @@
 //
 //    Peter Chervenski < spookey@abv.bg >
 //    Shane Ryan < shane.mcdonald.ryan@gmail.com >
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
-// File:        Population.cpp
-// Description: Implementation of the Population class.
+// File:        NSGAPopulation.cpp
+// Description: Implementation of NSGA-II multiobjective algorithm with population.
 ///////////////////////////////////////////////////////////////////////////////
 //
 
@@ -48,18 +49,14 @@ namespace NEAT
 NSGAPopulation::NSGAPopulation(const Genome& a_Seed, const Parameters& a_Parameters, bool a_RandomizeWeights, double a_RandomizationRange)
 {
     m_RNG.TimeSeed();
-    //m_RNG.Seed(0);
     m_BestFitness = 0.0;
     m_BestFitnessEver = 0.0;
-
     m_Parameters = a_Parameters;
-
     m_Generation = 0;
     m_NumEvaluations = 0;
 
     m_NextGenomeID = a_Parameters.PopulationSize;
     m_GensSinceBestFitnessLastChanged = 0;
-    // m_GensSinceMPCLastChanged = 0;
 
     // Spawn the population
     for(unsigned int i=0; i<m_Parameters.PopulationSize; i++)
@@ -74,6 +71,7 @@ NSGAPopulation::NSGAPopulation(const Genome& a_Seed, const Parameters& a_Paramet
     // Initialize the innovation database
     m_InnovationDatabase.Init(a_Seed);
 
+    // Initial sort
     NSGASort();
 
 
@@ -90,7 +88,6 @@ NSGAPopulation::NSGAPopulation(const char *a_FileName)
     m_Generation = 0;
     m_NumEvaluations = 0;
     m_GensSinceBestFitnessLastChanged = 0;
-   // m_GensSinceMPCLastChanged = 0;
 
     std::ifstream t_DataFile(a_FileName);
 
@@ -160,7 +157,7 @@ bool CrowdComparison(Genome ls, Genome rs)
 {
     return (ls.rank < rs.rank || (ls.rank == rs.rank && ls.distance > rs.distance));
 }
-
+// Probabilistic crowd comparison.
 bool NSGAPopulation::StochasticCrowdComparison(Genome& ls, Genome& rs)
 {     RNG t_RNG;
       t_RNG.TimeSeed();
@@ -172,6 +169,7 @@ bool NSGAPopulation::StochasticCrowdComparison(Genome& ls, Genome& rs)
         return  ls.distance > rs.distance;
       }
 }
+
 
 void NSGAPopulation::Sort()
 {
@@ -189,16 +187,8 @@ void NSGAPopulation::Epoch()
     {
         m_Genomes[i].SetEvaluated();
     }
-
     // Sort each species's members by fitness and the species by fitness
     NSGASort();
-
-    // Update species stagnation info & stuff
-
-    ///////////////////
-    // Preparation
-    ///////////////////
-    //AdjustFitness();
 
     // Incrementing the global stagnation counter, we can check later for global stagnation
     m_GensSinceBestFitnessLastChanged++;
@@ -207,6 +197,7 @@ void NSGAPopulation::Epoch()
     // since the pop is sorted
     m_BestGenome = m_Genomes[0];
     m_BestFitness = m_BestGenome.GetMultiFitness()[0];
+
     if (m_BestFitness > m_BestFitnessEver)
     {
         m_BestGenomeEver = m_BestGenome;
@@ -220,18 +211,20 @@ void NSGAPopulation::Epoch()
     // Delta coding - if there is a global stagnation
     // for dropoff age + 10 generations, focus the search on the top 2 species,
     // in case there are more than 2, of course
-    if (m_Parameters.DeltaCoding)
-    {
-        if (m_GensSinceBestFitnessLastChanged > (m_Parameters.SpeciesMaxStagnation + 10))
-        {
+
+    // Note vic: figure out what to do with this one.
+  //  if (m_Parameters.DeltaCoding)
+//    {
+  //      if (m_GensSinceBestFitnessLastChanged > (m_Parameters.SpeciesMaxStagnation + 10))
+  //      {
             // The first two will reproduce
             //m_Species[0].SetOffspringRqd( m_Parameters.PopulationSize/2 );
            // m_Species[1].SetOffspringRqd( m_Parameters.PopulationSize/2 );
 
                 // The rest will not
 
-        }
-    }
+  //      }
+//    }
 
 
     /////////////////////////////
@@ -249,7 +242,7 @@ void NSGAPopulation::Epoch()
     // Now we kill off the old parents
     // Todo: this baby/adult scheme is complicated and basically sucks,
     // I should remove it completely.
-   // for(unsigned int i=0; i<m_Species.size(); i++) m_Species[i].KillOldParents();
+
 
     unsigned int t_total_genomes  = m_Genomes.size();
 
@@ -261,58 +254,41 @@ void NSGAPopulation::Epoch()
         {
             Genome t_tg = m_Genomes[0];
             m_Genomes.push_back(t_tg);
-            //AddIndividual(t_tg);
         }
     }
+
     // Increase generation number
     m_Generation++;
     // At this point we may also empty our innovation database
     // This is the place where we control whether we want to
     // keep innovation numbers forever or not.
+
     if (!m_Parameters.InnovationsForever)
         m_InnovationDatabase.Flush();
 }
 
-void NSGAPopulation::GenomicDiversity() // It is actually O(n*n)
+// Calculates the genomic diversity objective for each genome in the pop
+void NSGAPopulation::GenomicDiversity()
 {
   for (unsigned int i = 0; i < m_Genomes.size(); i++)
   {
       double diversity_sum = 0.0;
-      //double old_min = -1;
-    //  double min = std::numeric_limits<double>::infinity();
-  //
-  //    double temp_min = 0.0;
+
       for (unsigned int k = 0; k < m_Genomes.size(); k++)
       {
         if (i != k)
         {
           diversity_sum +=  m_Genomes[i].CompatibilityDistance(m_Genomes[k], m_Parameters);}
        }
-    /*  for (unsigned int j = 0; j< m_Parameters.MaxSpecies; j++)
-      {
-          for (unsigned int k = 0; k < m_Genomes.size(); k++)
-          {
-            if (i != k)
-            {
-              temp_min = m_Genomes[i].CompatibilityDistance(m_Genomes[k], m_Parameters);
-              if (temp_min < min && temp_min > old_min)
-                  min = temp_min;
-            }
-          }
-          if (min !=std::numeric_limits<double>::infinity())
-          {
-            diversity_sum += min;
 
-          }
-          old_min = min;
-          min = std::numeric_limits<double>::infinity();
-       }
-*/
       m_Genomes[i].multifitness.insert(m_Genomes[i].multifitness.begin(), diversity_sum/m_Parameters.PopulationSize);
 
     }
 }
 
+// Non dominated sorting. First step is to divide the organisms into ranks
+// After that distance is assigned
+// And the population is sorted
 void NSGAPopulation::NSGASort()
 {   if (m_Genomes[0].multifitness.size() == 0)
         return; // no need to sort the unsortable.
@@ -331,10 +307,11 @@ void NSGAPopulation::NSGASort()
 
     //4. Sort
     std::sort(m_Genomes.begin(), m_Genomes.end(), CrowdComparison);
-  
+
 
 }
 
+// The initial Pareto ranking
 void NSGAPopulation::PrimaryRanking(std::vector<std::vector<Genome*> > &fronts)
 {   std::vector<Genome*> zero;
     RNG t_RNG;
@@ -373,6 +350,7 @@ void NSGAPopulation::PrimaryRanking(std::vector<std::vector<Genome*> > &fronts)
     fronts.push_back(zero);
 }
 
+//Secondary ranking of the population. This is where the actual ranks are determined.
 void NSGAPopulation::SecondaryRanking(std::vector<std::vector<Genome*> >& fronts)
 {
     int counter = 0;
@@ -399,11 +377,14 @@ void NSGAPopulation::SecondaryRanking(std::vector<std::vector<Genome*> >& fronts
     }
 }
 
+//The distance measure for the individuals in each front.
 void NSGAPopulation::AssignDistance(std::vector<std::vector<Genome*> > &fronts)
 {     RNG t_RNG;
      t_RNG.TimeSeed();
     for (unsigned int i = 0; i < fronts.size(); i++)
-    {   if (fronts[i].size() == 0 || fronts[i][0] -> multifitness.size() == 0)
+    {
+        // control conditions
+        if (fronts[i].size() == 0 || fronts[i][0] -> multifitness.size() == 0)
         {
             return;
         }
@@ -418,7 +399,7 @@ void NSGAPopulation::AssignDistance(std::vector<std::vector<Genome*> > &fronts)
           fronts[i][1 ] -> distance = std::numeric_limits<double>::infinity();
           continue;
         }
-
+        // and we get to it.
         for (unsigned int k = 0; k < fronts[i][0] -> multifitness.size(); k++)
         {
 
@@ -443,6 +424,7 @@ void NSGAPopulation::AssignDistance(std::vector<std::vector<Genome*> > &fronts)
     }
 }
 //Adapted from: http://www.algolist.net/Algorithms/Sorting/Quicksort
+// Needed to sort individuals by fitness index. Cool stuff.
 void NSGAPopulation::quickSort(std::vector<Genome*>& front, int left, int right, int index) {
 
     int i = left, j = right;
@@ -471,6 +453,10 @@ void NSGAPopulation::quickSort(std::vector<Genome*>& front, int left, int right,
         quickSort(front, i, right, index);
 }
 
+// Determines domination
+// An individual dominates another if:
+// 1. For al objectives it is not worse
+// 2. Is better on at least one objective.
 bool NSGAPopulation::StochasticDominate(Genome& ls, Genome& rs, double p)
 {
      if (probabilities.size() == 0)
@@ -499,7 +485,7 @@ bool NSGAPopulation::StochasticDominate(Genome& ls, Genome& rs, double p)
     return count > 0;
 
 }
-
+// The non-probabilistic version of the same thing
 bool NSGAPopulation::Dominate(Genome& ls, Genome& rs)
 {
     int count = 0.0;
