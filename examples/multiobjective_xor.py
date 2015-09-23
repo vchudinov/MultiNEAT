@@ -6,7 +6,7 @@ import MultiNEAT as NEAT
 import multiprocessing as mpc
 import numpy as np
 import cv2
-import utilities
+import Utilities
 
 params = NEAT.Parameters()
 params.PopulationSize = 200
@@ -167,7 +167,7 @@ def getbest(run, filename):
         img = np.zeros((500, 500, 3), dtype=np.uint8)
         img += 10
 
-        utilities.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True )
+        Utilities.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True )
         cv2.imshow("NN", img)
         cv2.waitKey(1)
         print "max: ", best.GetMultiFitness()[0]

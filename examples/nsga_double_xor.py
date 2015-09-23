@@ -150,7 +150,7 @@ def evaluate_retina_and(genome):
                 if output[0] < 0.:
                     correct +=1.
 
-        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/len(possible_inputs)., end_time ]
 
     except Exception as ex:
         print "nn ",ex
@@ -204,24 +204,24 @@ def getbest(run, generations):
     g = NEAT.Genome(0, 7, 1, True, NEAT.ActivationFunction.SIGNED_SIGMOID, NEAT.ActivationFunction.SIGNED_SIGMOID,
             params)
     results = []
-    pop = NEAT.Population(g, params, True, 1.0)
+    pop = NEAT.NSGAPopulation(g, params, True, 1.0)
+    pop.SetProbabilities([1.0, .25]);
     for generation in range(generations):
 
-        genome_list = NEAT.GetGenomeList(pop)
-        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, display = False, cores= 4)
-
-        [genome.SetFitness(fitness[0]) for genome, fitness in zip(genome_list, fitnesses)]
-        [genome.SetPerformance(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
-        [genome.SetLength(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
-
+        genome_list = pop.Genomes
+        fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_xor, display = False, cores = 4)
+        [genome.SetMultiFitness([fitness[0], fitness[1]]) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetPerformance(fitness[2]) for genome,fitness in zip(genome_list, fitnesses)]
+        [genome.SetLength(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
+        best = pop.GetLeader()
         average_time = np.mean([fitness[3] for fitness in fitnesses])
         max_time = max([fitness[3] for fitness in fitnesses])
 
-        best = pop.GetBestGenome()
+
         print "---------------------------"
         print "Generation: ", generation
-        print "Best: ", best.GetFitness(), " Length: ", best.GetPerformance(), "Perf: ", best.Length
-        print "Average time: ", average_time, " Longest time: ", max_time
+        print "Best ", best.GetMultiFitness()[0], " Perf: ", best.GetPerformance(), "Len", best.Length
+        print "Average time ", average_time, " Longest time: ", max_time
 
 
         net = NEAT.NeuralNetwork()

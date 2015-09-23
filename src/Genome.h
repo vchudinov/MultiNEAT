@@ -588,8 +588,9 @@ public:
     void Clean_Net( std::vector<Connection>& connections, unsigned int input_count,
                     unsigned int output_count, unsigned int hidden_count);
 
-  //  py::list GetPoints(py::tuple& node,Parameters& params, bool outgoing);
-
+  py::list GetPoints(py::tuple& node,Parameters& params, bool outgoing);
+  double fake_cppn(std::vector<double> input);
+  double pythonized_cppn(py::list python_input);
 #ifdef USE_BOOST_PYTHON
 
     // Serialization

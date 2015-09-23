@@ -6,10 +6,10 @@ import MultiNEAT as NEAT
 import multiprocessing as mpc
 import numpy as np
 import cv2
-import utilities
+import Utilities
 
 params = NEAT.Parameters()
-params.PopulationSize = 100
+params.PopulationSize = 200
 params.DynamicCompatibility = True
 params.CompatTreshold = 1.0
 params.YoungAgeTreshold = 15
@@ -45,17 +45,17 @@ params.ActivationFunction_UnsignedSine_Prob = 0.0
 params.ActivationFunction_Linear_Prob = 0.25
 
 
-params.DivisionThreshold = 0.
-params.VarianceThreshold = 0.0
-params.BandThreshold = 0.
-params.InitialDepth = 3
+params.DivisionThreshold = 0.5
+params.VarianceThreshold = 0.3
+params.BandThreshold = 0.03
+params.InitialDepth = 4
 params.MaxDepth = 4
 params.IterationLevel = 1
 params.Leo = True
 params.GeometrySeed = True
 params.LeoSeed = True
 params.LeoThreshold = 0.
-params.CPPN_Bias = -3.0
+params.CPPN_Bias = -1.0
 params.Qtree_X = 0.0
 params.Qtree_Y = 0.0
 params.Width = 1.
@@ -143,18 +143,18 @@ def getbest(run, filename):
     g = NEAT.Genome(0, 7, 1, True, NEAT.ActivationFunction.SIGNED_SIGMOID, NEAT.ActivationFunction.SIGNED_SIGMOID,
             params)
 
-    pop = NEAT.NSGAPopulation(g, params, True, 1.0)
-    pop.SetProbabilities([1.0, .25]);
-    for generation in range(100):
+    pop = NEAT.Population(g, params, True, 1.0)
+    #pop.SetProbabilities([1.0, .25]);
+    for generation in range(300):
 
         print "---------------------------"
         print "Generation: ", generation
 
-        genome_list = pop.Genomes
+        genome_list = NEAT.GetGenomeList(pop)
         fitnesses = NEAT.EvaluateGenomeList_Serial(genome_list, evaluate_xor, display = False)
-        [genome.SetMultiFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetFitness(fitness[0]) for genome, fitness in zip(genome_list, fitnesses)]
         [genome.SetLength(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
-        best = pop.GetLeader()
+        best = pop.GetBestGenome()
         net = NEAT.NeuralNetwork()
         best.BuildPhenotype(net)
         img = np.zeros((500, 500, 3), dtype=np.uint8)
@@ -167,11 +167,10 @@ def getbest(run, filename):
         img = np.zeros((500, 500, 3), dtype=np.uint8)
         img += 10
 
-        utilities.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True )
+        Utilities.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True )
         cv2.imshow("NN", img)
         cv2.waitKey(1)
-        print "max: ", best.GetMultiFitness()[0]
-        print "Len: ", best.GetMultiFitness()[1]
+        print "max: ", best.GetFitness()
 
         generations = generation
 

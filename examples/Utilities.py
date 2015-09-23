@@ -4,6 +4,24 @@ import cv2
 import MultiNEAT as NEAT
 import csv
 
+params = NEAT.Parameters()
+pparams = NEAT.Parameters()
+params.DivisionThreshold = 0.5
+params.VarianceThreshold = .03
+params.BandThreshold = 0.03
+params.InitialDepth = 3
+params.MaxDepth = 5
+params.IterationLevel = 1
+params.Leo = False
+params.LeoSeed = False
+params.GeometrySeed = False
+params.LeoThreshold = 0.0
+params.CPPN_Bias = -1.0
+params.Qtree_X = 0.0
+params.Qtree_Y = 0.0
+params.Width = 1.0
+params.Height = 1.0
+
 # Saves data (in the form of a list) to a file.
 def dump_to_file(data, filename):
     with open(filename,"a") as output:
@@ -30,16 +48,17 @@ def plot_nn(genome,substrate, params , ax, filename = "Network.png"):
     indices = get_neuron_indices(nn.connections)
 
     for connection in nn.connections:
-        print len(nn.connections)
+
         n1 = nn.neurons[connection.source_neuron_idx].substrate_coords
         n2 = nn.neurons[connection.target_neuron_idx].substrate_coords
 
-        
+
 
         offsetx =  n2[0] - n1[0]
 
         offsety = n2[1] - n1[1]
-
+        if offsetx ==0 and offsety == 0:
+            continue
         if connection.weight < 0.0:
             ax.arrow(n1[0], n1[1], offsetx, offsety, head_width=0.04,
                 head_length=0.05, fc='red', ec='red', length_includes_head=True)
@@ -57,20 +76,19 @@ def plot_nn(genome,substrate, params , ax, filename = "Network.png"):
             ax.add_patch(plt.Circle((n[0], n[1]), 0.03, fc='green'))
     return
 
-def plot_cppn_pattern(node, net,depth,  ax, leo = False):
+def plot_cppn_pattern(node, g,  ax, leo = False):
     pattern = []
+    net = NEAT.NeuralNetwork()
+    g.BuildPhenotype(net)
     i = 0
-    o = 0
-    if leo:
-        o = -1
-    for y in np.arange(-1.2, 1.2, 0.05):
+    for y in np.arange(-1.2, 1.2, 0.01):
         pattern.append([])
-        for x in np.arange(-1.2, 1.2, 0.2):
+        for x in np.arange(-1.2, 1.2, 0.01):
             net.Flush()
             inp = [node[0], node[1], node[2],x,y,0.0]
-            net.Input(inp)
-            [ net.Activate() for _ in range(depth)]
-            pattern[i].append(net.Output()[o])
+            #net.Input(inp)
+            #[ net.Activate() for _ in range(5)]
+            pattern[i].append(g.pythonized_cppn(inp))
 
         i += 1
 
@@ -81,12 +99,12 @@ def plot_cppn_pattern(node, net,depth,  ax, leo = False):
     return
 
 def get_points(node, genome, params, outgoing, ax, arrows = True):
-    net = NEAT.NeuralNetwork()
-    points = genome.GetPoints( node,params, outgoing)
+    #net = NEAT.NeuralNetwork()
+    points = genome.GetPoints( node, params, outgoing)
     ax.add_patch( plt.Circle( (node[0], node[1]), 0.05, fc='green'))
 
     for point in points:
-        ax.add_patch(plt.Circle((point[0], point[1]), 0.025, fc = 'red'))
+        ax.add_patch(plt.Circle((point[0], point[1]), 0.015, fc = 'red', zorder = 1))
 
     if arrows:
         for point in points:
@@ -172,13 +190,13 @@ def draw_genome(genome, ax):
 
 ################################################################
 substrate = NEAT.Substrate(
-        [(-1.0,0.0, 1.0),(-.33,0.0,1.0),(0.33,0.0,1.0),(1.0,0.0,1.0),
-        (-1.0,0.0,-1.0), (-0.33,0.0,-1.0),(0.33,0.0,-1.0),(1.0,0.0,-1.0),
-        (0.0,0.0,0.0)],
-        [],
-        [(-1.,1,0),(1,1,0)]
+        [(-1.0,-1.0, 1.0),(-.33,-1.0,1.0),(0.33,-1.0,1.0),(1.0,-1.0,1.0),
+        (-1.0,-1.0,-1.0), (-0.33,-1.0,-1.0),(0.33,-1.0,-1.0),(1.0,-1.0,-1.0),
+        (0.0,-1.0,0.0)],
+        [(-1.0,0.36, 1.0),(-.33,0.36,1.0),(0.33,0.36,1.0),(1.0,0.36,1.0),
+        (-1.0,0.61,-1.0), (-0.33,0.61,-1.0),(0.33,0.61,-1.0),(1.0,0.61,-1.0)],
+        [(0.0,1.0,0.0)] #(-1.,1,0),(1,1,0)]
         )
-
 '''
 substrate = NEAT.Substrate([(-1., -1., 0.0), (-1., 1., 0.0), (-1., 0., 0.0)],
                            [],
@@ -320,32 +338,40 @@ def DrawPhenotype(image, rect, nn, neuron_radius=5,
 
 
 if __name__ == "__main__":
-
+    '''
+    node = (0.0, -1.0, 0.0)
     g = NEAT.Genome(0, 7, 1, True, NEAT.ActivationFunction.UNSIGNED_SIGMOID, NEAT.ActivationFunction.UNSIGNED_SIGMOID,
           params)
-   #1 g = NEAT.Genome("Best_1000")
-    fig = plt.figure(figsize = (18,6))
-    ax = fig.add_subplot(1, 2, 1)
-    ax.set_title("CPPN Output")
-    ax.set_xlim(-1.2,1.2)
-    ax.set_ylim(-1.2, 1.2)
-    #node = (0.33,0.0,1.0)
-    node = (0.0, -1.0, 0.0)
-    #node = (-1, -1, -1.0)
-    #node = (-.33,0.0,1.0)
-    net = NEAT.NeuralNetwork()
-    g.BuildPhenotype(net)
-    g.CalculateDepth();
-    plot_cppn_pattern(node, net,g.GetDepth(), ax, leo = False)
-    get_points(node, g, params, True, ax, arrows = False)
-    #plot_nn(g,substrate,params, ax)
+    fig, (ax1, ax2) = plt.subplots(1, 2, sharex = True, sharey = True, )
+    fig.set_size_inches(10,6)
 
-    ax = fig.add_subplot(1, 2, 2)
-    ax.set_title("LEO Output")
-    ax.set_xlim(-1.2,1.2)
-    ax.set_ylim(-1.2, 1.2)
-    plot_cppn_pattern(node, net,g.GetDepth(), ax, leo = True)
-    get_points(node, g, params, True, ax, arrows = False)
-    #plot_nn(g,substrate,params, ax)
-    plt.show()
+    params.BandThreshold = -0.01
+    ax1.set_title("Without Band Pruning", fontsize = 16, fontweight = 'bold')
+    ax1.set_xlim(-1.1,1.1)
+    ax1.set_ylim(-1.1, 1.1)
+
+    plot_cppn_pattern(node, g,  ax1, leo = False)
+    get_points(node, g, params, True, ax1, arrows = False)
+
+    params.BandThreshold = 0.03
+    ax2 = plt.gca()
+    ax2.set_title("With Band Pruning (Band Threshold = 0.03)", fontsize = 16, fontweight = 'bold')
+    ax2.set_xlim(-1.1,1.1)
+    ax2.set_ylim(-1.1, 1.1)
+
+    plot_cppn_pattern(node, g,  ax2, leo = False)
+    get_points(node, g, params, True, ax2, arrows = False)
+    '''
+    for i in range (20):
+        ax = plt.gca()
+        ax.set_xlim(-1.1,1.1)
+        ax.set_ylim(-1.1, 1.1)
+        #filename = "/home/penguinofdoom/Projects/data/retina/es_nsga_genomes/retina_NSGA_3000_" + str(i) + ".gen"
+        filename = "/home/penguinofdoom/Projects/data/new-data/es_clean_" + str(i) + "_2800"
+        print filename
+        g = NEAT.Genome(filename)
+        params.Leo = False
+        plot_nn(g,substrate, params , ax)
+
+        plt.show()
     #plot_nn(net)

@@ -53,7 +53,7 @@ params.ActivationFunction_Linear_Prob = 1
 # ES-HyperNEAT parameters
 params.DivisionThreshold = 0.5
 params.VarianceThreshold = .03
-params.BandThreshold = 0.03
+params.BandThreshold = 0.3
 params.InitialDepth = 4
 params.MaxDepth = 5
 params.IterationLevel = 1
@@ -150,7 +150,7 @@ def evaluate_retina_and(genome):
                 if output[0] < 0.:
                     correct +=1.
 
-        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/len(possible_inputs), end_time ]
 
     except Exception as ex:
         print "nn ",ex
@@ -211,8 +211,8 @@ def getbest(run, generations):
         fitnesses = NEAT.EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, display = False, cores= 4)
 
         [genome.SetFitness(fitness[0]) for genome, fitness in zip(genome_list, fitnesses)]
-        [genome.SetPerformance(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
-        [genome.SetLength(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetPerformance(fitness[2]) for genome, fitness in zip(genome_list, fitnesses)]
+        [genome.SetLength(fitness[1]) for genome, fitness in zip(genome_list, fitnesses)]
 
         average_time = np.mean([fitness[3] for fitness in fitnesses])
         max_time = max([fitness[3] for fitness in fitnesses])
@@ -220,8 +220,8 @@ def getbest(run, generations):
         best = pop.GetBestGenome()
         print "---------------------------"
         print "Generation: ", generation
-        print "Best: ", best.GetFitness(), " Length: ", best.GetPerformance(), "Perf: ", best.Length
-        print "Average time: ", average_time, " Longest time: ", max_time
+        print "Best ", best.GetFitness(), " Perf: ", best.GetPerformance(), "Len", best.Length
+        print "Average time ", average_time, " Longest time: ", max_time
 
 
         net = NEAT.NeuralNetwork()

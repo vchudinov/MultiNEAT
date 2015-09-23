@@ -2983,7 +2983,16 @@ void Genome::DivideInitialize(const std::vector<double>& node, boost::shared_ptr
     while (!q.empty())
     {
         p = q.front();
-        // Add children
+        /*double level = p -> level + 1;
+        double width = p -> width / 2;
+        double height = p -> height / 2;
+        double offsetx = width/2;
+        double offsety = height/2;
+        p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x - offsetx, p -> y - offsety, width, height, level)));
+        p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x - offsetx, p -> y + offsety, width, height, level)));
+        p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x + offsetx, p -> y + offsety, width, height, level)));
+        p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x + offsetx, p -> y - offsety, width, height, level)));
+        */// Add children
         p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x - p -> width/2, p -> y - p -> height/2 , p -> width/2, p -> height/2, p -> level + 1)));
         p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x - p -> width/2, p -> y + p ->height/2 , p -> width/2, p -> height/2, p -> level + 1)));
         p -> children.push_back(boost::shared_ptr<QuadPoint>(new QuadPoint(p -> x + p -> width/2, p -> y + p ->height/2 , p -> width/2, p -> height/2, p -> level + 1)));
@@ -3023,6 +3032,7 @@ void Genome::DivideInitialize(const std::vector<double>& node, boost::shared_ptr
             {
                 cppn.Activate();
             }
+            //p -> children[i] -> weight = fake_cppn(t_inputs);
             p -> children[i] -> weight = cppn.Output()[0];
             if (params.Leo)
                 p -> children[i] -> leo = cppn.Output()[cppn.Output().size() - 1];
@@ -3066,7 +3076,8 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
             // Band Pruning phase.
             // If LEO is turned off this should always happen.
             // If it is not it should only happen if the LEO output is greater than a specified threshold
-            else if (!params.Leo || (params.Leo && root -> children[i] -> leo > params.LeoThreshold))
+            //else if (!params.Leo || (params.Leo && root -> children[i] -> leo > params.LeoThreshold))
+            else
             {
               //  CalculateDepth();
                 int cppn_depth = 5;
@@ -3107,43 +3118,43 @@ void Genome::PruneExpress( const std::vector<double>& node, boost::shared_ptr<Qu
                 {
                     cppn.Activate();
                 }
-
+                //d_left = std::abs(root -> children[i] -> weight - fake_cppn(inputs));
                 d_left = std::abs (root -> children[i] -> weight - cppn.Output()[0]);
                 cppn.Flush();
 
                 // Right
-                inputs[root_index] += 2* root -> width;
+                inputs[root_index] += 2* root-> width;
                 cppn.Input(inputs);
 
                 for(int d=0; d<cppn_depth; d++)
                 {
                     cppn.Activate();
                 }
-
+                //d_right = std::abs(root -> children[i] -> weight - fake_cppn(inputs));
                 d_right = std::abs (root -> children[i] -> weight - cppn.Output()[0]);
                 cppn.Flush();
 
                 // Top
-                inputs[root_index] -= root -> width;
-                inputs[root_index+1] -= root -> width;
+                inputs[root_index] -= root-> width;
+                inputs[root_index+1] -= root -> height;
                 cppn.Input(inputs);
 
                 for(int d=0; d<cppn_depth; d++)
                 {
                     cppn.Activate();
                 }
-
+              //  d_top = std::abs(root -> children[i] -> weight - fake_cppn(inputs));
                 d_top = std::abs (root -> children[i] -> weight - cppn.Output()[0]);
                 cppn.Flush();
                 // Bottom
-                inputs[root_index+1] += 2*root -> width;
+                inputs[root_index+1] += 2*root  -> height;
                 cppn.Input(inputs);
 
                 for(int d=0; d<cppn_depth; d++)
                 {
                     cppn.Activate();
                 }
-
+                //d_bottom = std::abs(root -> children[i] -> weight - fake_cppn(inputs));
                 d_bottom = std::abs (root -> children[i] -> weight - cppn.Output()[0]);
                 cppn.Flush();
                 double vert = std::min(d_top, d_bottom);
@@ -3187,12 +3198,18 @@ double Genome::Variance(boost::shared_ptr<QuadPoint> &point)
     {
         return 0.0;
     }
-
+  //  std::vector<double> vals;
+    //vals.clear();
+    //CollectValues(vals, point);
     boost::accumulators::accumulator_set<double,  boost::accumulators::stats< boost::accumulators::tag::variance> > acc;
-    for (unsigned int i = 0; i < 4; i++)
+    for (unsigned int i = 0; i < point -> children.size(); i++)
     {
-        acc(point -> children[i] -> weight);
+      acc(point -> children[i] -> weight);
     }
+    /*for (unsigned int i = 0; i < vals.size(); i++)
+    {
+        acc(vals[i]);
+    }*/
 
     return boost::accumulators::variance(acc);
 }
@@ -3218,10 +3235,11 @@ void Genome::CollectValues(std::vector<double>& vals, boost::shared_ptr<QuadPoin
         vals.push_back(point-> weight);
     }
 }
-/*
+
 // Returns all the nodes found by a query for a single point. Useful for visualisation and things like that.
 py::list Genome::GetPoints(py::tuple& t_node,Parameters& params, bool outgoing )
-{   std::vector<double> node;
+{
+    std::vector<double> node;
     std::vector<TempConnection> validpoints;
     for(int j=0; j<py::len(t_node); j++)
     {   node.push_back(py::extract<double>(t_node[j]));
@@ -3243,9 +3261,32 @@ py::list Genome::GetPoints(py::tuple& t_node,Parameters& params, bool outgoing )
     }
 
     return return_values;
-}*/
+}
 //
+double Genome::pythonized_cppn(py::list python_input)
+{  std::vector<double> inputs;
+  inputs.clear();
+  for(int j=0; j<py::len(python_input); j++)
+  {
+    inputs.push_back(py::extract<double>(python_input[j]));
+  }
+  return fake_cppn(inputs);
 
+}
+double Genome::fake_cppn(std::vector<double> input)
+{   double dist = sqrt(pow(input[3],2) + pow(input[4],2));
+    if (dist > 0.95)
+            return -1.0;
+    else if (dist > 0.5 )
+            return 1.0;
+    else if (dist > 0.25)
+            return 0.5;
+    else if (dist > 0.15)
+            return -1.0;
+    else if (dist > 0.075)
+            return 1.0;
+
+}
 // Removes all the dangling connections. This still leaves the nodes though,
 void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_count,unsigned int output_count,unsigned int hidden_count)
 {

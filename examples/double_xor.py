@@ -19,7 +19,7 @@ import time
 # NEAT parameters
 
 params = NEAT.Parameters()
-params.PopulationSize = 150
+params.PopulationSize = 100
 
 params.DynamicCompatibility = True
 params.MinSpecies = 5
@@ -53,8 +53,8 @@ params.ActivationFunction_Linear_Prob = 1
 # ES-HyperNEAT parameters
 params.DivisionThreshold = 0.5
 params.VarianceThreshold = .03
-params.BandThreshold = 0.03
-params.InitialDepth = 4
+params.BandThreshold = 0.3
+params.InitialDepth = 3
 params.MaxDepth = 5
 params.IterationLevel = 1
 params.Leo = True
@@ -133,7 +133,7 @@ def evaluate_retina_and(genome):
             left = i[0:2] in [[0,1],[1,0]]
             right = i[2:] in [[0,1],[1,0]]
             inp = i[:]
-            inp.append(-1)
+            inp.append(1)
 
             net.Flush()
             net.Input(inp)
@@ -150,7 +150,7 @@ def evaluate_retina_and(genome):
                 if output[0] < 0.:
                     correct +=1.
 
-        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/256., end_time ]
+        return [1000/(1+ error*error), net.GetTotalConnectionLength(), correct/len(possible_inputs), end_time ]
 
     except Exception as ex:
         print "nn ",ex
@@ -220,8 +220,8 @@ def getbest(run, generations):
         best = pop.GetBestGenome()
         print "---------------------------"
         print "Generation: ", generation
-        print "Best: ", best.GetFitness(), " Length: ", best.GetPerformance(), "Perf: ", best.Length
-        print "Average time: ", average_time, " Longest time: ", max_time
+        print "Best ", best.GetFitness(), " Perf: ", best.GetPerformance(), "Len", best.Length
+        print "Average time ", average_time, " Longest time: ", max_time
 
 
         net = NEAT.NeuralNetwork()
@@ -239,17 +239,17 @@ def getbest(run, generations):
         cv2.imshow("NN", img)
         cv2.waitKey(1)
 
-        #results.append([run, generation, best.GetFitness(), best.GetPerformance(), best.Length])
-        #if generation % 100 == 0:
-        #    best.Save("datadump/best_%d_%d" %(run, generation))
-        #    Utilities.dump_to_file(results, "datadump/release.csv")
-        #    results = []
-        #generations = generation
+        results.append([run, generation, best.GetFitness(), best.GetPerformance(), best.Length])
+        if generation % 100 == 0:
+            best.Save("datadump/double_xor_%d_%d" %(run, generation))
+            Utilities.dump_to_file(results, "datadump/double_xor.csv")
+            results = []
+        generations = generation
         pop.Epoch()
     return
 
 
 
 #runs = 5
-for i in range(5):
-    getbest(i,10000)
+for i in range(10):
+    getbest(i,800)
