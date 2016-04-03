@@ -34,7 +34,6 @@
 #include <queue>
 #include <math.h>
 #include <utility>
-#include <boost/unordered_map.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
@@ -2899,17 +2898,19 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
     TempConnections.reserve(maxNodes + 1);
 
     std::vector<double> point;
-    point.reserve(3);
-
     boost::shared_ptr<QuadPoint> root;
 
-    boost::unordered_map< std::vector<double>, int > hidden_nodes;
+    //boost::unordered_map< std::vector<double>, int > hidden_nodes;
+
+    std::vector< std::vector<double> > hidden_nodes;
     hidden_nodes.reserve(maxNodes);
 
-    boost::unordered_map< std::vector<double>, int > temp;
+    //boost::unordered_map< std::vector<double>, int > temp;
+    std::vector< std::vector<double> > temp;
     temp.reserve(maxNodes);
 
-    boost::unordered_map< std::vector<double>, int > unexplored_nodes;
+    //boost::unordered_map< std::vector<double>, int > unexplored_nodes;
+    std::vector< std::vector<double> > unexplored_nodes;
     unexplored_nodes.reserve(maxNodes);
 
     net.m_neurons.reserve(maxNodes);
@@ -2920,76 +2921,80 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
 
     NeuralNetwork t_temp_phenotype(true);
     BuildPhenotype(t_temp_phenotype);
+    std::vector<std::vector<double> >::iterator it;
 
     // Find Inputs to Hidden connections.
-    for(unsigned int i = 0; i < input_count; i++)
+    source_index = 0;
+    for(auto input_point: subst.m_input_coords)
     {
         // Get the Quadtree and express the connections in it for this input
         root = boost::shared_ptr<QuadPoint>(new QuadPoint(params.Qtree_X, params.Qtree_Y, params.Width, params.Height, 1));
-        DivideInitialize( subst.m_input_coords[i], root,t_temp_phenotype,  params, true, 0.0);
+        DivideInitialize( input_point, root, t_temp_phenotype,  params, true, 0.0);
+
         TempConnections.clear();
-        PruneExpress( subst.m_input_coords[i], root, t_temp_phenotype, params, TempConnections, true);
 
-        for(unsigned int j = 0; j < TempConnections.size(); j++)
+        PruneExpress( input_point, root, t_temp_phenotype, params, TempConnections, true);
+
+        for(auto tempCon : TempConnections)
         {
-        	if (std::abs(TempConnections[j].weight*subst.m_max_weight_and_bias) < 0.2/*subst.m_link_threshold*/) // TODO: fix this
-                continue;
+        	  // Find the hidden node in the hidden nodes. If it is not there add it.
+            it = std::find(hidden_nodes.begin(), hidden_nodes.end(), tempCon.target);
 
-            // Find the hidden node in the hidden nodes. If it is not there add it.
-            if ( hidden_nodes.find(TempConnections[j].target) == hidden_nodes.end())
+            target_index = it - hidden_nodes.begin();
+
+            if ( it == hidden_nodes.end())
             {
-                target_index = hidden_counter++;
-                hidden_nodes.insert(std::make_pair(TempConnections[j].target, target_index));
+                target_index = hidden_nodes.size();
+                hidden_nodes.push_back(tempCon.target);
             }
             // Add connection
-            else
-            {
-                target_index = hidden_nodes.find(TempConnections[j].target) -> second;
-            }
 
             Connection tc;
-            tc.m_source_neuron_idx = i;
+            tc.m_source_neuron_idx = source_index;
             tc.m_target_neuron_idx = target_index + hidden_index ;
-            tc.m_weight = TempConnections[j].weight * subst.m_max_weight_and_bias;
+            tc.m_weight = tempCon.weight * subst.m_max_weight_and_bias;
             tc.m_recur_flag = false;
 
             net.m_connections.push_back(tc);
 
         }
+        source_index++;
     }
+
     // Hidden to hidden.
     // Basically the same procedure as above repeated IterationLevel times (see the params)
     unexplored_nodes = hidden_nodes;
     for (unsigned int i = 0; i < params.IterationLevel; i++)
     {
-        boost::unordered_map< std::vector<double>, int >::iterator itr_hid;
-        for(itr_hid = unexplored_nodes.begin(); itr_hid != unexplored_nodes.end(); itr_hid++)
+
+        for( auto hidden_point: unexplored_nodes)
         {
             root = boost::shared_ptr<QuadPoint>(new QuadPoint(params.Qtree_X, params.Qtree_Y, params.Width, params.Height, 1));
-            DivideInitialize( itr_hid -> first, root, t_temp_phenotype, params, true, 0.0);
+
+            DivideInitialize( hidden_point, root, t_temp_phenotype, params, true, 0.0);
             TempConnections.clear();
-            PruneExpress(itr_hid -> first , root, t_temp_phenotype, params, TempConnections, true);
+
+            PruneExpress( hidden_point , root, t_temp_phenotype, params, TempConnections, true);
             //root.reset();
+            it = std::find(hidden_nodes.begin(), hidden_nodes.end(), hidden_point);
+            source_index = it - hidden_nodes.begin();
 
-            for (unsigned int k = 0; k < TempConnections.size(); k++)
+            for (auto tempCon: TempConnections)
             {
-            	if (std::abs(TempConnections[k].weight * subst.m_max_weight_and_bias) < 0.2/*subst.m_link_threshold*/) // TODO: fix this
-                    continue;
+                it = std::find(hidden_nodes.begin(), hidden_nodes.end(), tempCon.target);
 
-                if (hidden_nodes.find(TempConnections[k].target) == hidden_nodes.end())
+                target_index = it - hidden_nodes.begin();
+
+                if ( it == hidden_nodes.end())
                 {
-                    target_index = hidden_counter++;
-                    hidden_nodes.insert(std::make_pair(TempConnections[k].target, target_index));
-                }
-                else // TODO: This can be skipped if building a feed forwad network.
-                {
-                    target_index= hidden_nodes.find(TempConnections[k].target) -> second;
+                    target_index = hidden_nodes.size();
+                    hidden_nodes.push_back(tempCon.target);
                 }
 
                 Connection tc;
-                tc.m_source_neuron_idx = itr_hid->second + hidden_index;  // NO!!!
+                tc.m_source_neuron_idx = source_index + hidden_index;
                 tc.m_target_neuron_idx = target_index + hidden_index;
-                tc.m_weight = TempConnections[k].weight * subst.m_max_weight_and_bias;
+                tc.m_weight = tempCon.weight * subst.m_max_weight_and_bias;
                 tc.m_recur_flag = false;
 
                 net.m_connections.push_back(tc);
@@ -2997,12 +3002,13 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
             }
         }
         // Now get the newly discovered hidden nodes
-        boost::unordered_map< std::vector<double>, int >::iterator itr1;
-        for(itr1 = hidden_nodes.begin(); itr1 != hidden_nodes.end(); itr1++)
+        temp.clear();
+        for(auto newPoint: hidden_nodes)
         {
-            if(unexplored_nodes.find(itr1 -> first) == unexplored_nodes.end())
+            it = std::find(unexplored_nodes.begin(), unexplored_nodes.end(), newPoint);
+            if( it  == unexplored_nodes.end())
             {
-                temp.insert(std::make_pair(itr1 -> first, itr1 -> second));
+                temp.push_back(newPoint);
             }
         }
         unexplored_nodes = temp;
@@ -3010,32 +3016,32 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
 
     // Finally Output to Hidden. Note that unlike before, here we connect the outputs to
     // existing hidden nodes and no new nodes are added.
-    for(unsigned int i = 0; i < output_count; i++)
+    target_index = 0;
+    for(auto output_point: subst.m_output_coords)
     {
         root = boost::shared_ptr<QuadPoint>(new QuadPoint(params.Qtree_X, params.Qtree_Y, params.Width, params.Height, 1));
-        DivideInitialize(subst.m_output_coords[i], root, t_temp_phenotype, params, false, 0.0);
+        DivideInitialize( output_point, root, t_temp_phenotype, params, false, 0.0);
         TempConnections.clear();
-        PruneExpress(subst.m_output_coords[i], root, t_temp_phenotype, params, TempConnections, false);
+        PruneExpress( output_point, root, t_temp_phenotype, params, TempConnections, false);
 
-        for(unsigned int j = 0; j < TempConnections.size(); j++)
+        for( auto tempCon: TempConnections)
         {
             // Make sure the link weight is above the expected threshold.
-            if (std::abs(TempConnections[j].weight * subst.m_max_weight_and_bias) < 0.2 /*subst.m_link_threshold*/) // TODO: fix this
-                continue;
-
-            if (hidden_nodes.find(TempConnections[j].source) != hidden_nodes.end())
+            it = std::find(hidden_nodes.begin(), hidden_nodes.end(), tempCon.source);
+            if (it != hidden_nodes.end())
             {
-                source_index = hidden_nodes.find(TempConnections[j].source) -> second;
+                source_index = it - hidden_nodes.begin();
 
                 Connection tc;
                 tc.m_source_neuron_idx = source_index + hidden_index;
-                tc.m_target_neuron_idx = i + input_count;
+                tc.m_target_neuron_idx = target_index + input_count;
 
-                tc.m_weight = TempConnections[j].weight*subst.m_max_weight_and_bias;
+                tc.m_weight = tempCon.weight*subst.m_max_weight_and_bias;
                 tc.m_recur_flag = false;
 
                 net.m_connections.push_back(tc);
             }
+            target_index++;
         }
     }
     // Add the neurons.Input first, followed by bias, output and hidden. In this order.
@@ -3070,13 +3076,13 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
         net.m_neurons.push_back(t_n);
     }
 
-    boost::unordered_map< std::vector<double>, int >::iterator itr;
-    for (itr = hidden_nodes.begin(); itr!=hidden_nodes.end(); itr++)
+    //boost::unordered_map< std::vector<double>, int >::iterator itr;
+    for (auto node: hidden_nodes)
     {
         Neuron t_n;
         t_n.m_a = 1;
         t_n.m_b = 0;
-        t_n.m_substrate_coords = itr -> first;
+        t_n.m_substrate_coords = node;
 
         ASSERT(t_n.m_substrate_coords.size() > 0); // prevent 0D points
         t_n.m_activation_function_type = subst.m_hidden_nodes_activation;
@@ -3097,7 +3103,7 @@ void Genome::DivideInitialize(const std::vector<double>& node,
 							  const double& z_coord)
 {   // Have to check if this actually does something useful here
     //CalculateDepth();
-    int cppn_depth = 8;//GetDepth();
+    int cppn_depth = 5;//GetDepth();
 
     std::vector<double> t_inputs;
 
@@ -3205,7 +3211,7 @@ void Genome::PruneExpress( const std::vector<double>& node,
             else if (!params.Leo || (params.Leo && root -> children[i] -> leo > params.LeoThreshold))
             {
                 //CalculateDepth();
-                int cppn_depth = 8;//GetDepth();
+                int cppn_depth = 5;//GetDepth();
 
                 double d_left, d_right, d_top, d_bottom;
                 std::vector<double> inputs;

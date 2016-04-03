@@ -9,6 +9,7 @@ import numpy as np
 import pickle as pickle
 import MultiNEAT as NEAT
 from MultiNEAT import *
+import itertools
 # GetGenomeList, ZipFitness
 #from MultiNEAT.tools import EvaluateGenomeList_Serial
 
@@ -16,7 +17,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 params = NEAT.Parameters()
-params.PopulationSize = 200;
+params.PopulationSize = 125;
 
 params.DynamicCompatibility = True;
 params.CompatTreshold = 2.0;
@@ -44,7 +45,7 @@ params.MaxActivationA = 6.0;
 
 params.MutateNeuronActivationTypeProb = 0.03;
 
-params.ActivationFunction_SignedSigmoid_Prob = 0.0;
+params.ActivationFunction_SignedSigmoid_Prob = 1.0;
 params.ActivationFunction_UnsignedSigmoid_Prob = 0.0;
 params.ActivationFunction_Tanh_Prob = 1.0;
 params.ActivationFunction_TanhCubic_Prob = 0.0;
@@ -60,14 +61,14 @@ params.ActivationFunction_Linear_Prob = 1.0;
 params.DivisionThreshold = 0.5;
 params.VarianceThreshold = 0.03;
 params.BandThreshold = 0.3;
-params.InitialDepth = 2;
-params.MaxDepth = 3;
+params.InitialDepth = 3;
+params.MaxDepth = 4;
 params.IterationLevel = 1;
 params.Leo = False;
 params.GeometrySeed = False;
 params.LeoSeed = False;
 params.LeoThreshold = 0.3;
-params.CPPN_Bias = -1.0;
+params.CPPN_Bias = 1.0;
 params.Qtree_X = 0.0;
 params.Qtree_Y = 0.0;
 params.Width = 1.;
@@ -76,10 +77,39 @@ params.Elitism = 0.1;
 
 rng = NEAT.RNG()
 rng.TimeSeed()
+left_patterns = [
+[0., 0., 0., 0.],
+[0., 0., 0., 1,],
+[0., 1., 0., 1.],
+[0., 1., 0., 0.],
+[0., 1., 1., 1.],
+[0., 0., 1., 0.],
+[1., 1., 0., 1.],
+[1., 0., 0., 0.]
+]
 
-substrate = NEAT.Substrate([(-1., -1., 0.0), (1., -1., 0.0), (0., -1., 0.0)],
-                           [],
-                           [(0., 1., 0.0)])
+right_patterns = [
+[0., 0., 0., 0],
+[1., 0., 0.,0.],
+[1., 0., 1., 0.],
+[0., 0., 1., 0],
+[1., 1., 1., 0.],
+[0., 1., 0., 0.,],
+[1., 0., 1., 1.],
+[0., 0., 0., 1]
+]
+possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
+
+
+substrate = NEAT.Substrate(
+        [(-1.0,-1.0, 1.0),(-1, 1, 1),(-0.33, -1, 1),(-0.33, 1, 1),
+        (0.33, -1, 1), (0.33, 1, 1),(1, -1, 1),(1, 1, 1),
+        (-1, -1, -1)],
+        [(-1, -1, 0.75),(-1, 1, 0.75),(-0.33, -1, 0.75),(-0.33, 1, 0.75),
+         (0.33, -1, 0.75),(0.33, 1, 0.75), (1, -1, 0.75),(1, 1, 0.75),(-1, 0, 0.5),
+         (-0.33, 0, 0.5), (0.33, 0, 0.5), (1, 0, 0.5),(-0.5, 0, 0.25),(0.5, 0, 0.25) ],
+        [(0, -1, 0), (0, 1, 0) ]
+        )
 
 substrate.m_allow_input_hidden_links = False;
 substrate.m_allow_input_output_links = False;
@@ -95,61 +125,68 @@ substrate.m_allow_input_output_links = False;
 substrate.m_allow_hidden_output_links = True;
 substrate.m_allow_hidden_hidden_links = False;
 
-substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID;
+substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 
 substrate.m_with_distance = False;
 
 substrate.m_max_weight_and_bias = 8.0;
 
-def evaluate_xor(genome):
-
-    net = NEAT.NeuralNetwork()
+def evaluate_retina_and(genome):
+    error = 0
+    correct = 0.
 
     try:
-
+        net = NEAT.NeuralNetwork();
+        start_time = time.time()
+        #genome.BuildHyperNEATPhenotype(net, substrate)
         genome.BuildESHyperNEATPhenotype(net, substrate, params)
-        error = 0
-        depth = 3
-        correct = 0.0
+        end_time = time.time() - start_time
+        left = False
+        right = False
 
-        net.Flush()
+        for i in possible_inputs:
 
-        net.Input([1,0,1])
-        [net.Activate() for _ in range(depth)]
-        o = net.Output()
-        error += abs(o[0] - 1)
-        if o[0] > 0.75:
-            correct +=1.
+            left = i[0:4] in left_patterns
+            right = i[4:] in right_patterns
+            inp = i[:]
+            inp.append(1) #bias
 
-        net.Flush()
-        net.Input([0,1,1])
-        [net.Activate() for _ in range(depth)]
-        o = net.Output()
-        error += abs(o[0] - 1)
-        if o[0] > 0.75:
-            correct +=1.
+            net.Flush()
+            net.Input(inp)
+            [net.Activate() for _ in range(5)]
+            output = net.Output()
 
-        net.Flush()
-        net.Input([1,1,1])
-        [net.Activate() for _ in range(depth)]
-        o = net.Output()
-        error += abs(o[0] - 0)
-        if o[0] < 0.25:
-            correct +=1.
+            if (left and right):
+                if output[0] > 0.5 and output[1] > 0.5:
+                    correct +=1.
+                error += abs(1.0 - output[0])
+                error += abs(1.0 - output[1])
 
-        net.Flush()
-        net.Input([0,0,1])
-        [net.Activate() for _ in range(depth)]
-        o = net.Output()
-        error += abs(o[0] - 0)
-        if o[0] < 0.25:
-            correct +=1.
+            elif left:
+                if output[0] > 0.5 and output[1] <= 0.5:
+                    correct +=1.
 
-        return (4 - error)**2
+                error += abs(1.0 - output[0])
+                error += abs(-1.0 - output[1])
+
+            elif right:
+                if output[0] <= 0.5 and output[1] > 0.5:
+                    correct +=1.
+
+                error += abs(-1.0 - output[0])
+                error += abs(1.0 - output[1])
+
+            else:
+                if output[0] <= 0.5 and output[1] <= 0.5:
+                    correct +=1.
+                error += abs(-1.0 - output[0])
+                error += abs(-1.0 - output[1])
+
+        return 1000.0 /( 1.0 + error * error)
 
     except Exception as ex:
-        print('Exception:', ex)
+        print "nn ",ex
         return 0.0
 
 
@@ -166,11 +203,12 @@ def getbest(run):
                     params)
 
     pop = NEAT.Population(g, params, True, 1.0, run)
-    for generation in range(1000):
+    for generation in range(10000):
         #Evaluate genomes
         genome_list = NEAT.GetGenomeList(pop)
-
-        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_xor, display=False)
+        print "Start: "
+        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_retina_and, display=False)
+        print "Evaluated"
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
 
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
@@ -182,35 +220,20 @@ def getbest(run):
 
 
         # Visualize best network's Genome
-        '''
-        net = NEAT.NeuralNetwork()
-        pop.Species[0].GetLeader().BuildPhenotype(net)
-        img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img += 10
-        NEAT.DrawPhenotype(img, (0, 0, 500, 500), net )
-        cv2.imshow("CPPN", img)
-        # Visualize best network's Pheotype
-        net = NEAT.NeuralNetwork()
-        pop.Species[0].GetLeader().Build_ES_Phenotype(net, substrate, params)
-        img = np.zeros((500, 500, 3), dtype=np.uint8)
-        img += 10
 
-        Utilities.DrawPhenotype(img, (0, 0, 500, 500), net, substrate=True )
-        cv2.imshow("NN", img)
-        cv2.waitKey(1)
-        '''
-        if max(fitnesses) > 15.0:
-            break
+        #if max(fitnesses) > 15.0:
+        #    break
 
         # Epoch
         generations = generation
         pop.Epoch()
+        print "---------------------------------"
 
     return generations
 
 
 gens = []
-for run in range(100):
+for run in range(1):
     gen = getbest(run)
     gens += [gen]
     print('Run:', run, 'Generations to solve XOR:', gen)

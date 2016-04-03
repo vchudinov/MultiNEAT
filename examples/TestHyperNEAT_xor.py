@@ -8,8 +8,9 @@ import cv2
 import numpy as np
 import pickle as pickle
 import MultiNEAT as NEAT
-from MultiNEAT import GetGenomeList, ZipFitness
-from MultiNEAT.tools import EvaluateGenomeList_Serial, EvaluateGenomeList_Parallel
+from MultiNEAT import *
+# GetGenomeList, ZipFitness
+#from MultiNEAT.tools import EvaluateGenomeList_Serial, EvaluateGenomeList_Parallel
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -154,14 +155,14 @@ def getbest(i):
         #else:
         fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate, display=False)
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
-        
+
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
 
         best = max(fitnesses)
 
         pop.Epoch()
         generations = generation
-        
+
         if best > 15.0:
             break
 
@@ -176,5 +177,3 @@ avg_gens = sum(gens) / len(gens)
 
 print('All:', gens)
 print('Average:', avg_gens)
-
-

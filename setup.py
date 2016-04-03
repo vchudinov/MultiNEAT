@@ -8,15 +8,15 @@ if sys.version_info[0] < 3:
     lb = 'boost_python'
 else:
     lb = 'boost_python3'
-    
-''' Note: 
+
+''' Note:
 
 to build Boost.Python on Windows with mingw
 
 bjam target-os=windows/python=3.4 toolset=gcc variant=debug,release link=static,shared threading=multi runtime-link=shared cxxflags="-include cmath "
 
 
-also insert this on top of boost/python.hpp : 
+also insert this on top of boost/python.hpp :
 
 #include <cmath>   //fix  cmath:1096:11: error: '::hypot' has not been declared
 
@@ -71,18 +71,18 @@ except Exception as ex:
                                  libraries=[lb,
                                             'boost_system',
                                             'boost_serialization'],
-                                            
-                                 # for Windows                                 
+
+                                 # for Windows
                                  #libraries= ['libboost_python-mgw48-mt-1_58',
                                  #            'libboost_serialization-mgw48-mt-1_58'],
                                  #include_dirs = ['C:/MinGW/include', 'C:/Users/Peter/Desktop/boost_1_58_0'],
                                  #library_dirs = ['C:/MinGW/lib', 'C:/Users/Peter/Desktop/boost_1_58_0/stage/lib'],
 
-                                 extra_compile_args=[#'-O3', 
-                                                     '-march=native', 
+                                 extra_compile_args=[#'-O3',
+                                                     '-march=native',
                                                      '-DUSE_BOOST_PYTHON',
-                                                     '-DUSE_BOOST_RANDOM', 
-                                                    '-std=gnu++11',
+                                                     '-DUSE_BOOST_RANDOM',
+                                                    '-std=c++0x',
                                                     '-g',
                                                     '-Wall'
                                                      ])
