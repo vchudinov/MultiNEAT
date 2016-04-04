@@ -2891,7 +2891,6 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
     unsigned int hidden_index = input_count + output_count;
     unsigned int source_index = 0;
     unsigned int target_index = 0;
-    unsigned int hidden_counter = 0;
     unsigned int maxNodes = std::pow(4, params.MaxDepth);
 
     std::vector<TempConnection> TempConnections;

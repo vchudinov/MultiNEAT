@@ -651,7 +651,7 @@ void NeuralNetwork::Input_numpy(py::numeric::array& a_Inputs)
 std::vector<double> NeuralNetwork::Output()
 {
     std::vector<double> t_output;
-    for (int i = 0; i < m_num_outputs; i++)
+    for (unsigned int i = 0; i < m_num_outputs; i++)
     {
         t_output.push_back(m_neurons[i + m_num_inputs].m_activation);
     }

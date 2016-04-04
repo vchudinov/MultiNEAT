@@ -10,7 +10,7 @@
   *
   */
 
-/*
+
 #include "Genome.h"
 #include "Population.h"
 #include "NeuralNetwork.h"
@@ -246,11 +246,6 @@ int main()
 }
 
 #endif
-*/
-
-
-
-
 
 
 
@@ -266,7 +261,7 @@ int main()
  * Ignore this file. I use it to test stuff.
  *
  */
-
+/*
 #include "Genome.h"
 #include "Population.h"
 #include "NeuralNetwork.h"
@@ -282,14 +277,14 @@ using namespace NEAT;
 
 #define ENABLE_TESTING
 #ifdef ENABLE_TESTING
-
+*/
 /*
 double abs(double x)
 {
     if (x < 0) return -x;
     return x;
 }*/
-
+/*
 //std::vector<double>
 double xortest(Genome& g)
 {
@@ -417,3 +412,4 @@ int main()
 }
 
 #endif
+*/

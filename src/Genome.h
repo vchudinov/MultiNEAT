@@ -554,6 +554,7 @@ public:
     };
 
     void BuildESHyperNEATPhenotype(NeuralNetwork& a_net, Substrate& subst, Parameters& params);
+
     void DivideInitialize(const std::vector<double>& node,
     		              boost::shared_ptr<QuadPoint>& root,
 						  NeuralNetwork& cppn, Parameters& params,
@@ -567,6 +568,7 @@ public:
     void CollectValues(std::vector<double>& vals, boost::shared_ptr<QuadPoint>& point);
 
     double Variance( boost::shared_ptr<QuadPoint> &point);
+
     void Clean_Net( std::vector<Connection>& connections, unsigned int input_count,
                     unsigned int output_count, unsigned int hidden_count);
 
