@@ -2929,9 +2929,7 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
         // Get the Quadtree and express the connections in it for this input
         root = boost::shared_ptr<QuadPoint>(new QuadPoint(params.Qtree_X, params.Qtree_Y, params.Width, params.Height, 1));
         DivideInitialize( input_point, root, t_temp_phenotype,  params, true, 0.0);
-
         TempConnections.clear();
-
         PruneExpress( input_point, root, t_temp_phenotype, params, TempConnections, true);
 
         for(auto tempCon : TempConnections)
@@ -2969,12 +2967,10 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
         for( auto hidden_point: unexplored_nodes)
         {
             root = boost::shared_ptr<QuadPoint>(new QuadPoint(params.Qtree_X, params.Qtree_Y, params.Width, params.Height, 1));
-
             DivideInitialize( hidden_point, root, t_temp_phenotype, params, true, 0.0);
             TempConnections.clear();
-
             PruneExpress( hidden_point , root, t_temp_phenotype, params, TempConnections, true);
-            //root.reset();
+
             it = std::find(hidden_nodes.begin(), hidden_nodes.end(), hidden_point);
             source_index = it - hidden_nodes.begin();
 
@@ -3082,8 +3078,6 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
         t_n.m_a = 1;
         t_n.m_b = 0;
         t_n.m_substrate_coords = node;
-
-        ASSERT(t_n.m_substrate_coords.size() > 0); // prevent 0D points
         t_n.m_activation_function_type = subst.m_hidden_nodes_activation;
         t_n.m_type = NEAT::HIDDEN;
         net.m_neurons.push_back(t_n);
@@ -3212,7 +3206,10 @@ void Genome::PruneExpress( const std::vector<double>& node,
                 //CalculateDepth();
                 int cppn_depth = 5;//GetDepth();
 
-                double d_left, d_right, d_top, d_bottom;
+                double d_left = 0.0;
+                double d_right  = 0.0 ;
+                double d_top = 0.0;
+                double d_bottom = 0.0;
                 std::vector<double> inputs;
 
                 int root_index = 0;
@@ -3286,8 +3283,9 @@ void Genome::PruneExpress( const std::vector<double>& node,
 
                 d_bottom = Abs(root -> children[i] -> weight - cppn.Output()[0]);
                 cppn.Flush();
-
-                if (std::max(std::min(d_top, d_bottom), std::min(d_left, d_right)) > params.BandThreshold)
+                double vertical = std::min(d_top, d_bottom);
+                double horizontal =  std::min(d_left, d_right);
+                if ( std::max( vertical , horizontal ) > params.BandThreshold)
                 {
                     Genome::TempConnection tc;
                     //Yeah its ugly
@@ -3327,13 +3325,29 @@ double Genome::Variance(boost::shared_ptr<QuadPoint> &point)
     {
         return 0.0;
     }
+    std::vector<double> values;
+    CollectValues(values, point);
+    double med = 0.0;
+    double v = 0.0;
 
-    boost::accumulators::accumulator_set<double,  boost::accumulators::stats< boost::accumulators::tag::variance> > acc;
+    for (double val: values)
+    {
+      med += val;
+    }
+    med = med/values.size();
+
+    for (double val: values)
+    {
+      v += std::pow(val - med, 2);
+    }
+    v = v/values.size();
+
+    /*boost::accumulators::accumulator_set<double,  boost::accumulators::stats< boost::accumulators::tag::variance> > acc;
     for (unsigned int i = 0; i < 4; i++)
     {
         acc(point -> children[i] -> weight);
     }
-    /*
+
     //Old approach. Traverses the entire tree. The new one checks just the children and seems to work just as well.
     std::queue<boost::shared_ptr<QuadPoint> > q;
     q.push(point);
@@ -3359,19 +3373,14 @@ double Genome::Variance(boost::shared_ptr<QuadPoint> &point)
                 }
         }*/
 
-    return boost::accumulators::variance(acc);
+    //return boost::accumulators::variance(acc);
+    return v;
 }
 
 // Helper method for Variance
 void Genome::CollectValues(std::vector<double>& vals, boost::shared_ptr<QuadPoint>& point)
 {
-    //In theory we shouldn't get here at all.
-    if (point == NULL)
-    {
-        return;
-    }
-
-    if (point -> children.size() >0 )
+    if ( point && point -> children.size() > 0 )
     {
         for (unsigned int i = 0; i < 4; i++)
         {
@@ -3380,7 +3389,7 @@ void Genome::CollectValues(std::vector<double>& vals, boost::shared_ptr<QuadPoin
     }
 
     else
-    {   // Here, Apparently it treats the point a if it is not initialized
+    {   // Here, Apparently it treats the point as if it is not initialized ???
         vals.push_back(point-> weight);
     }
 }
@@ -3411,7 +3420,7 @@ void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_
             if (connections[i].m_source_neuron_idx != connections[i].m_target_neuron_idx)
             {
                 hasOutgoing[connections[i].m_source_neuron_idx] = true;
-                hasIncoming[connections[i].m_target_neuron_idx] = true;
+              //  hasIncoming[connections[i].m_target_neuron_idx] = true;
             }
 
         }
@@ -3421,7 +3430,7 @@ void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_
         std::vector<Connection>::iterator itr;
         for (itr = connections.begin(); itr<connections.end();)
         {
-            if( !hasOutgoing[itr -> m_target_neuron_idx] || !hasIncoming[itr -> m_source_neuron_idx])
+            if( !hasOutgoing[itr -> m_target_neuron_idx]) // || !hasIncoming[itr -> m_source_neuron_idx])
             {
                 itr = connections.erase(itr);
                 if (!loose_connections)
