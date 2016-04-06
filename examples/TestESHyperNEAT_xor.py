@@ -152,6 +152,74 @@ def evaluate_xor(genome):
         print('Exception:', ex)
         return 0.0
 
+def evaluate_triple_xor(genome):
+
+    net = NEAT.NeuralNetwork()
+
+    try:
+
+        genome.BuildESHyperNEATPhenotype(net, substrate, params)
+        error = 0
+        depth = 3
+        correct = 0.0
+
+        net.Flush()
+        net.Input([0, 0, 0, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(o[0])
+
+        net.Flush()
+        net.Input([0, 0, 1, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(1 - o[0])
+
+        net.Flush()
+        net.Input([0, 1, 0, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(1 - o[0])
+
+        net.Flush()
+        net.Input([0, 1, 1, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(o[0])
+
+        net.Flush()
+        net.Input([1, 0, 0, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs( 1  - o[0])
+
+        net.Flush()
+        net.Input([1, 0, 1, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(o[0])
+
+        net.Flush()
+        net.Input([1, 1, 0, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(o[0])
+
+        net.Flush()
+        net.Input([1, 1, 1, 1])
+        [net.Activate() for _ in range(depth)]
+        o = net.Output()
+        error += abs(1 - o[0])
+
+
+
+
+        return (8 - error)**2
+
+    except Exception as ex:
+        print('Exception:', ex)
+        return 0.0
+
 
 
 def getbest(run):
@@ -170,7 +238,8 @@ def getbest(run):
         #Evaluate genomes
         genome_list = NEAT.GetGenomeList(pop)
 
-        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_xor, display=False)
+        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_triple_xor, display=False)
+        #fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_xor, display=False)
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
 
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
