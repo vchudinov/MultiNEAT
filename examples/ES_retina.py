@@ -4,7 +4,7 @@ import sys
 import time
 import random as rnd
 import subprocess as comm
-import cv2
+#import cv2
 import numpy as np
 import pickle as pickle
 import MultiNEAT as NEAT
@@ -30,7 +30,7 @@ params.RouletteWheelSelection = False;
 
 params.MutateRemLinkProb = 0.02;
 params.RecurrentProb = 0;
-params.OverallMutationRate = 0.05;
+params.OverallMutationRate = 0.10;
 params.MutateAddLinkProb = 0.08;
 params.MutateAddNeuronProb = 0.01;
 params.MutateWeightsProb = 0.90;
@@ -43,7 +43,7 @@ params.ActivationAMutationMaxPower = 0.5;
 params.MinActivationA = 0.05;
 params.MaxActivationA = 6.0;
 
-params.MutateNeuronActivationTypeProb = 0.03;
+params.MutateNeuronActivationTypeProb = 0.0;
 
 params.ActivationFunction_SignedSigmoid_Prob = .0;
 params.ActivationFunction_UnsignedSigmoid_Prob = 1.0;
@@ -63,9 +63,9 @@ params.VarianceThreshold = 0.3;
 params.BandThreshold = 0.3;
 params.InitialDepth = 3;
 params.MaxDepth = 6;
-params.IterationLevel = 2;
+params.IterationLevel = 1;
 params.Leo = False;
-params.GeometrySeed = True;
+params.GeometrySeed = False;
 params.LeoSeed = False;
 params.LeoThreshold = 0.3
 params.CPPN_Bias = 1.0;
@@ -251,8 +251,8 @@ def evaluate_double_xor(genome):
                 error += abs(output[0])
                 error += abs(output[1])
 
-        return 1000.0/(1.0 + error*error)
-
+        #return 1000.0/(1.0 + error*error)
+        return correct / (len(pos_inputs) + 0.0)
     except Exception as ex:
         print "nn ",ex
         return 0.0
@@ -277,7 +277,7 @@ def getbest(run):
     #                params)
 
     pop = NEAT.Population(g, params, True, 1.0, run)
-    for generation in range(10000):
+    for generation in range(2500):
         #Evaluate genomes
         genome_list = NEAT.GetGenomeList(pop)
         fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_double_xor, display=False)
@@ -285,18 +285,21 @@ def getbest(run):
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
 
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
+        if max(fitnesses) > 0.98:
+            break
         generations = generation
         pop.Epoch()
-        print "---------------------------------"
+
 
     return generations
 
 
 gens = []
-for run in range(1):
+for run in range(10):
     gen = getbest(run)
     gens += [gen]
     print('Run:', run, 'Generations to solve XOR:', gen)
+
 avg_gens = sum(gens) / len(gens)
 
 print('All:', gens)
