@@ -20,7 +20,7 @@ params = NEAT.Parameters()
 params.PopulationSize = 125;
 
 params.DynamicCompatibility = True;
-params.CompatTreshold = 2.0;
+params.CompatTreshold = 2.5;
 params.YoungAgeTreshold = 15;
 params.SpeciesMaxStagnation = 100;
 params.OldAgeTreshold = 35;
@@ -30,7 +30,7 @@ params.RouletteWheelSelection = False;
 
 params.MutateRemLinkProb = 0.02;
 params.RecurrentProb = 0;
-params.OverallMutationRate = 0.15;
+params.OverallMutationRate = 0.05;
 params.MutateAddLinkProb = 0.08;
 params.MutateAddNeuronProb = 0.01;
 params.MutateWeightsProb = 0.90;
@@ -45,29 +45,29 @@ params.MaxActivationA = 6.0;
 
 params.MutateNeuronActivationTypeProb = 0.03;
 
-params.ActivationFunction_SignedSigmoid_Prob = 1.0;
-params.ActivationFunction_UnsignedSigmoid_Prob = 0.0;
-params.ActivationFunction_Tanh_Prob = 1.0;
+params.ActivationFunction_SignedSigmoid_Prob = .0;
+params.ActivationFunction_UnsignedSigmoid_Prob = 1.0;
+params.ActivationFunction_Tanh_Prob = 0.0;
 params.ActivationFunction_TanhCubic_Prob = 0.0;
-params.ActivationFunction_SignedStep_Prob = 1.0;
+params.ActivationFunction_SignedStep_Prob = .0;
 params.ActivationFunction_UnsignedStep_Prob = 0.0;
-params.ActivationFunction_SignedGauss_Prob = 1.0;
-params.ActivationFunction_UnsignedGauss_Prob = 0.0;
-params.ActivationFunction_Abs_Prob = 0.0;
+params.ActivationFunction_SignedGauss_Prob = .0;
+params.ActivationFunction_UnsignedGauss_Prob = 1.0;
+params.ActivationFunction_Abs_Prob = .0;
 params.ActivationFunction_SignedSine_Prob = 1.0;
-params.ActivationFunction_UnsignedSine_Prob = 0.0;
+params.ActivationFunction_UnsignedSine_Prob = 1.0;
 params.ActivationFunction_Linear_Prob = 1.0;
 
 params.DivisionThreshold = 0.5;
-params.VarianceThreshold = 0.03;
+params.VarianceThreshold = 0.3;
 params.BandThreshold = 0.3;
 params.InitialDepth = 3;
-params.MaxDepth = 4;
-params.IterationLevel = 1;
+params.MaxDepth = 6;
+params.IterationLevel = 2;
 params.Leo = False;
-params.GeometrySeed = False;
+params.GeometrySeed = True;
 params.LeoSeed = False;
-params.LeoThreshold = 0.3;
+params.LeoThreshold = 0.3
 params.CPPN_Bias = 1.0;
 params.Qtree_X = 0.0;
 params.Qtree_Y = 0.0;
@@ -98,12 +98,19 @@ right_patterns = [
 [1., 0., 1., 1.],
 [0., 0., 0., 1]
 ]
-possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
 
+
+
+        #(-0.33, -1, 1),
+        #(-0.33, 1, 1),
+        #(0.33, -1, 1),
+        #(0.33, 1, 1),
 
 substrate = NEAT.Substrate(
-        [(-1.0,-1.0, 1.0),(-1, 1, 1),(-0.33, -1, 1),(-0.33, 1, 1),
-        (0.33, -1, 1), (0.33, 1, 1),(1, -1, 1),(1, 1, 1),
+        [(-1.0,-1.0, 1.0),
+        (-1, 1, 1),
+        (1, -1, 1),
+        (1, 1, 1),
         (-1, -1, -1)],
         [(-1, -1, 0.75),(-1, 1, 0.75),(-0.33, -1, 0.75),(-0.33, 1, 0.75),
          (0.33, -1, 0.75),(0.33, 1, 0.75), (1, -1, 0.75),(1, 1, 0.75),(-1, 0, 0.5),
@@ -113,8 +120,8 @@ substrate = NEAT.Substrate(
 
 substrate.m_allow_input_hidden_links = False;
 substrate.m_allow_input_output_links = False;
-substrate.m_allow_hidden_hidden_links = False;
-substrate.m_allow_hidden_output_links = False;
+substrate.m_allow_hidden_hidden_links = True;
+substrate.m_allow_hidden_output_links = True;
 substrate.m_allow_output_hidden_links = False;
 substrate.m_allow_output_output_links = False;
 substrate.m_allow_looped_hidden_links = False;
@@ -125,14 +132,15 @@ substrate.m_allow_input_output_links = False;
 substrate.m_allow_hidden_output_links = True;
 substrate.m_allow_hidden_hidden_links = False;
 
-substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
+substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.TANH;
 substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 
 substrate.m_with_distance = False;
 
-substrate.m_max_weight_and_bias = 8.0;
+substrate.m_max_weight_and_bias = 5.0;
 
 def evaluate_retina_and(genome):
+    possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
     error = 0
     correct = 0.
 
@@ -154,7 +162,7 @@ def evaluate_retina_and(genome):
 
             net.Flush()
             net.Input(inp)
-            [net.Activate() for _ in range(5)]
+            [net.Activate() for _ in range(4)]
             output = net.Output()
 
             if (left and right):
@@ -168,20 +176,20 @@ def evaluate_retina_and(genome):
                     correct +=1.
 
                 error += abs(1.0 - output[0])
-                error += abs(-1.0 - output[1])
+                error += abs(output[1])
 
             elif right:
                 if output[0] <= 0.5 and output[1] > 0.5:
                     correct +=1.
 
-                error += abs(-1.0 - output[0])
+                error += abs(output[0])
                 error += abs(1.0 - output[1])
 
             else:
                 if output[0] <= 0.5 and output[1] <= 0.5:
                     correct +=1.
-                error += abs(-1.0 - output[0])
-                error += abs(-1.0 - output[1])
+                error += abs(output[0])
+                error += abs(output[1])
 
         return 1000.0 /( 1.0 + error * error)
 
@@ -189,7 +197,65 @@ def evaluate_retina_and(genome):
         print "nn ",ex
         return 0.0
 
+def evaluate_double_xor(genome):
 
+    pos_inputs = [list(x) for x in itertools.product([1, 0], repeat = 4)]
+
+    try:
+
+        net = NEAT.NeuralNetwork();
+        start_time = time.time()
+        #genome.BuildHyperNEATPhenotype(net, substrate)
+        genome.BuildESHyperNEATPhenotype(net, substrate, params)
+        left = False
+        right = False
+        correct = 0.0
+        error = 0.0
+        for i in pos_inputs:
+
+            left = (1 in i[0:2])  and (0 in i[0:2])
+            right = (1 in i[2:]) and (0 in i[2:])
+            inp = i[:]
+            inp.append(1.0)
+
+            net.Flush()
+            net.Input(inp)
+            [net.Activate() for _ in range(5)]
+
+            output = net.Output()
+
+            if (left and right):
+                if output[0] > 0.5 and output[1] > 0.5:
+                    correct +=1.
+                error += abs(1.0 - output[0])
+                error += abs(1.0 - output[1])
+
+            elif left:
+                if output[0] > 0.5 and output[1] <= 0.5:
+                    correct +=1.
+
+                error += abs(1.0 - output[0])
+                error += abs(output[1])
+
+            elif right:
+                if output[0] <= 0.5 and output[1] > 0.5:
+                    correct +=1.
+
+                error += abs(output[0])
+                error += abs(1.0 - output[1])
+
+            else:
+                if output[0] <= 0.5 and output[1] <= 0.5:
+                    correct +=1.
+
+                error += abs(output[0])
+                error += abs(output[1])
+
+        return 1000.0/(1.0 + error*error)
+
+    except Exception as ex:
+        print "nn ",ex
+        return 0.0
 
 def getbest(run):
     g = NEAT.Genome(0,
@@ -202,29 +268,23 @@ def getbest(run):
                     0,
                     params)
 
+    #g = NEAT.Genome(0,
+    #                substrate.GetMinCPPNInputs(),
+    #                substrate.GetMinCPPNOutputs(),
+    #                False,
+    #                NEAT.ActivationFunction.TANH,
+    #                NEAT.ActivationFunction.TANH,
+    #                params)
+
     pop = NEAT.Population(g, params, True, 1.0, run)
     for generation in range(10000):
         #Evaluate genomes
         genome_list = NEAT.GetGenomeList(pop)
-        print "Start: "
-        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_retina_and, display=False)
-        print "Evaluated"
+        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_double_xor, display=False)
+        #fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_retina_and, display=False)
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
 
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
-
-        # Print best fitness
-        #print("---------------------------")
-        #print("Generation: ", generation)
-        #print("max ", max([x.GetLeader().GetFitness() for x in pop.Species]))
-
-
-        # Visualize best network's Genome
-
-        #if max(fitnesses) > 15.0:
-        #    break
-
-        # Epoch
         generations = generation
         pop.Epoch()
         print "---------------------------------"
