@@ -179,13 +179,13 @@ public:
     /////////////
     // Alternative constructor for dealing with LEO, Gaussian seed etc.
     // empty means only bias is connected to outputs
-    /*Genome(unsigned int a_ID,
+    Genome(unsigned int a_ID,
            unsigned int a_NumInputs,
            unsigned int a_NumOutputs,
            bool empty,
            ActivationFunction a_OutputActType,
            ActivationFunction a_HiddenActType,
-           const Parameters& a_Parameters);*/
+           const Parameters& a_Parameters);
 
 
     ////////////////////////////

@@ -273,7 +273,7 @@ Genome::Genome(unsigned int a_ID,
 
 
 // Alternative constructor that creates a minimum genome with a leo output and if needed a gaussian seed.
-/*
+
 Genome::Genome(unsigned int a_ID,
                unsigned int a_NumInputs,
                unsigned int a_NumOutputs,
@@ -342,10 +342,10 @@ Genome::Genome(unsigned int a_ID,
         m_NeuronGenes.push_back( t_ngene );
         t_nnum++;
         // y1 and y2 coords
-        m_LinkGenes.push_back( LinkGene(2, a_NumInputs+a_NumOutputs + hid, t_innovnum, 1, false) );
+        m_LinkGenes.push_back( LinkGene(1, a_NumInputs+a_NumOutputs + hid, t_innovnum, 1.0, false) );
         t_innovnum++;
 
-        m_LinkGenes.push_back( LinkGene(5, a_NumInputs+a_NumOutputs + hid, t_innovnum, -1 , false) );
+        m_LinkGenes.push_back( LinkGene(4, a_NumInputs+a_NumOutputs + hid, t_innovnum, -1.0 , false) );
         t_innovnum++;
 
 
@@ -433,11 +433,11 @@ Genome::Genome(unsigned int a_ID,
     m_OffspringAmount = 0.0;
     m_Depth = 0;
     m_PhenotypeBehavior = NULL;
-    Performance = 0.0;
-    Length = 0.0;
+  //  Performance = 0.0;
+    //Length = 0.0;
 
 }
-*/
+
 
 // A little helper function to find the index of a neuron, given its ID
 // returns -1 if not found
@@ -3415,29 +3415,43 @@ void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_
         }
 
         // Move on to the nodes.
-        for (unsigned int i = 0; i < connections.size(); i++)
+        for (auto co: connections)
         {
-            if (connections[i].m_source_neuron_idx != connections[i].m_target_neuron_idx)
+            hasIncoming[co.m_target_neuron_idx] = true;
+
+            if (co.m_source_neuron_idx != co.m_target_neuron_idx)
             {
-                hasOutgoing[connections[i].m_source_neuron_idx] = true;
-              //  hasIncoming[connections[i].m_target_neuron_idx] = true;
+                hasOutgoing[co.m_source_neuron_idx] = true;
             }
 
         }
 
         loose_connections = false;
+        for (auto co: connections)
+        { //!(hasOutgoing[co.m_target_neuron_idx]))// ||
+          if( !(hasIncoming[co.m_source_neuron_idx]) || !(hasOutgoing[co.m_target_neuron_idx]))
+            loose_connections = true;
+            break;
+        }
 
         std::vector<Connection>::iterator itr;
         for (itr = connections.begin(); itr<connections.end();)
         {
-            if( !hasOutgoing[itr -> m_target_neuron_idx]) // || !hasIncoming[itr -> m_source_neuron_idx])
+           if( !(hasIncoming[itr -> m_source_neuron_idx]))
             {
-                itr = connections.erase(itr);
-                if (!loose_connections)
-                {
-                    loose_connections = true;
-                }
+              itr = connections.erase(itr);
+            }
+            else
+            {
+              itr++;
+          }
+        }
 
+        for (itr = connections.begin(); itr<connections.end();)
+        {
+            if(!(hasOutgoing[itr -> m_target_neuron_idx]))
+            {
+              itr = connections.erase(itr);
             }
             else
             {

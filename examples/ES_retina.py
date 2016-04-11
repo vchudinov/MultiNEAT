@@ -16,24 +16,31 @@ import itertools
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
+
 params = NEAT.Parameters()
 params.PopulationSize = 125;
 
 params.DynamicCompatibility = True;
-params.CompatTreshold = 2.5;
+params.CompatTreshold = 2.0;
+params.DisjointCoeff = 1.0
 params.YoungAgeTreshold = 15;
-params.SpeciesMaxStagnation = 100;
+params.SpeciesMaxStagnation = 500;
 params.OldAgeTreshold = 35;
-params.MinSpecies = 5;
-params.MaxSpecies = 10;
+params.MinSpecies = 10;
+params.MaxSpecies = 20;
+params.CrossoverRate = 0.25
+params.MultipointCrossoverRate = 1.0
+params.EliteFraction = 0.1
 params.RouletteWheelSelection = False;
-
-params.MutateRemLinkProb = 0.02;
+params.MutateRemLinkProb = 0.005;
 params.RecurrentProb = 0;
 params.OverallMutationRate = 0.10;
-params.MutateAddLinkProb = 0.08;
-params.MutateAddNeuronProb = 0.01;
-params.MutateWeightsProb = 0.90;
+params.AllowClones = False
+params.DynamicCompatibility = True
+params.DeltaCoding = True
+params.MutateAddLinkProb = 0.01;
+params.MutateAddNeuronProb = 0.003;
+params.MutateWeightsProb = 0.87;
 params.MaxWeight = 8.0;
 params.WeightMutationMaxPower = 0.2;
 params.WeightReplacementMaxPower = 1.0;
@@ -43,20 +50,20 @@ params.ActivationAMutationMaxPower = 0.5;
 params.MinActivationA = 0.05;
 params.MaxActivationA = 6.0;
 
-params.MutateNeuronActivationTypeProb = 0.0;
+params.MutateNeuronActivationTypeProb = 0.03;
 
-params.ActivationFunction_SignedSigmoid_Prob = .0;
-params.ActivationFunction_UnsignedSigmoid_Prob = 1.0;
-params.ActivationFunction_Tanh_Prob = 0.0;
+params.ActivationFunction_SignedSigmoid_Prob = 0.0;
+params.ActivationFunction_UnsignedSigmoid_Prob = 0.0;
+params.ActivationFunction_Tanh_Prob = 1.0;
 params.ActivationFunction_TanhCubic_Prob = 0.0;
 params.ActivationFunction_SignedStep_Prob = .0;
-params.ActivationFunction_UnsignedStep_Prob = 0.0;
+params.ActivationFunction_UnsignedStep_Prob = 0.2;
 params.ActivationFunction_SignedGauss_Prob = .0;
 params.ActivationFunction_UnsignedGauss_Prob = 1.0;
-params.ActivationFunction_Abs_Prob = .0;
-params.ActivationFunction_SignedSine_Prob = 1.0;
-params.ActivationFunction_UnsignedSine_Prob = 1.0;
-params.ActivationFunction_Linear_Prob = 1.0;
+params.ActivationFunction_Abs_Prob = 0.5;
+params.ActivationFunction_SignedSine_Prob = .0;
+params.ActivationFunction_UnsignedSine_Prob = 0.6;
+params.ActivationFunction_Linear_Prob = .0;
 
 params.DivisionThreshold = 0.5;
 params.VarianceThreshold = 0.3;
@@ -64,19 +71,20 @@ params.BandThreshold = 0.3;
 params.InitialDepth = 3;
 params.MaxDepth = 6;
 params.IterationLevel = 1;
-params.Leo = False;
-params.GeometrySeed = False;
+params.Leo = True;
+params.GeometrySeed = True;
 params.LeoSeed = False;
-params.LeoThreshold = 0.3
+params.LeoThreshold = .0;
 params.CPPN_Bias = 1.0;
 params.Qtree_X = 0.0;
 params.Qtree_Y = 0.0;
 params.Width = 1.;
 params.Height = 1.;
-params.Elitism = 0.1;
+
 
 rng = NEAT.RNG()
 rng.TimeSeed()
+'''
 left_patterns = [
 [0., 0., 0., 0.],
 [0., 0., 0., 1,],
@@ -98,8 +106,7 @@ right_patterns = [
 [1., 0., 1., 1.],
 [0., 0., 0., 1]
 ]
-
-
+'''
 
         #(-0.33, -1, 1),
         #(-0.33, 1, 1),
@@ -110,6 +117,10 @@ substrate = NEAT.Substrate(
         [(-1.0,-1.0, 1.0),
         (-1, 1, 1),
         (1, -1, 1),
+        (-0.33, -1, 1),
+        (-0.33, 1, 1),
+        (0.33, -1, 1),
+        (0.33, 1, 1),
         (1, 1, 1),
         (-1, -1, -1)],
         [(-1, -1, 0.75),(-1, 1, 0.75),(-0.33, -1, 0.75),(-0.33, 1, 0.75),
@@ -137,12 +148,53 @@ substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 
 substrate.m_with_distance = False;
 
-substrate.m_max_weight_and_bias = 5.0;
+substrate.m_max_weight_and_bias = 6.0;
 
 def evaluate_retina_and(genome):
-    possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
+    #possible_inputs = [list(x) for x in itertools.product([1, 0], repeat = 8)]
     error = 0
     correct = 0.
+    possible_inputs = [[-3., -3., -3., -3.],
+                        [3., -3., -3., -3.],
+                        [-3., 3., -3., -3.],
+                        [3., 3., -3., -3.],
+                        [-3., -3., 3., -3.],
+                        [3., -3., 3., -3.],
+                        [-3., 3., 3., -3.],
+                        [-3., -3., -3., -3.],
+                        [3., -3., -3., 3.],
+                        [-3., 3., -3., 3.],
+                        [-3., -3., 3., 3.],
+                        [3., 3., -3., 3.],
+                        [3., -3., 3., 3.],
+                        [-3., 3., 3., 3.],
+                        [3., 3., 3., 3.],
+                        [3.0, 3.0, 3.0, -3.0]
+
+
+    ]
+
+    left_patterns = [[-3., -3., -3., -3.],
+                      [3., -3., -3., -3.],
+                      [-3., 3., -3., -3.],
+                      [-3., -3., 3., -3.],
+                      [-3., -3., -3., -3.],
+                      [-3., -3., 3., 3.],
+                      [3., -3., 3., 3.],
+                      [-3., 3., 3., 3.]
+
+    ]
+    right_patterns =  [[-3., -3., -3., -3.],
+                        [3., -3., -3., -3.],
+                        [-3., 3., -3., -3.],
+                        [3., 3., -3., -3.],
+                        [-3., -3., 3., -3.],
+                        [3., 3., 3., -3.],
+                        [-3., -3., -3., -3.],
+                        [3., 3., -3., 3.]
+
+
+    ]
 
     try:
         net = NEAT.NeuralNetwork();
@@ -153,46 +205,48 @@ def evaluate_retina_and(genome):
         left = False
         right = False
 
-        for i in possible_inputs:
+        for i in range(16):
+            for j in range(16):
 
-            left = i[0:4] in left_patterns
-            right = i[4:] in right_patterns
-            inp = i[:]
-            inp.append(1) #bias
+                left = possible_inputs[i] in left_patterns
+                right = possible_inputs[j] in right_patterns
+                inp = possible_inputs[i][:]
+                inp.extend(possible_inputs[j])
+                inp.append(1) #bias
 
-            net.Flush()
-            net.Input(inp)
-            [net.Activate() for _ in range(4)]
-            output = net.Output()
+                net.Flush()
+                net.Input(inp)
+                [net.Activate() for _ in range(5)]
+                output = net.Output()
 
-            if (left and right):
-                if output[0] > 0.5 and output[1] > 0.5:
-                    correct +=1.
-                error += abs(1.0 - output[0])
-                error += abs(1.0 - output[1])
+                if (left and right):
+                    if output[0] > 0.5 and output[1] > 0.5:
+                        correct +=1.
+                    error += abs(1.0 - output[0])
+                    error += abs(1.0 - output[1])
 
-            elif left:
-                if output[0] > 0.5 and output[1] <= 0.5:
-                    correct +=1.
+                elif left:
+                    if output[0] > 0.5 and output[1] < 0.5:
+                        correct +=1.
+                    error += abs(1.0 - output[0])
+                    error += abs(output[1])
 
-                error += abs(1.0 - output[0])
-                error += abs(output[1])
+                elif right:
 
-            elif right:
-                if output[0] <= 0.5 and output[1] > 0.5:
-                    correct +=1.
+                    if output[0] < 0.5 and output[1] > 0.5:
+                        correct +=1.
 
-                error += abs(output[0])
-                error += abs(1.0 - output[1])
+                    error += abs( output[0])
+                    error += abs(1.0 - output[1])
 
-            else:
-                if output[0] <= 0.5 and output[1] <= 0.5:
-                    correct +=1.
-                error += abs(output[0])
-                error += abs(output[1])
+                else:
+                    if output[0] <= 0.5 and output[1] <= 0.5:
+                        correct +=1.
+                    error += abs(output[0])
+                    error += abs(output[1])
 
         return 1000.0 /( 1.0 + error * error)
-
+        #return correct/256.0
     except Exception as ex:
         print "nn ",ex
         return 0.0
@@ -258,35 +312,39 @@ def evaluate_double_xor(genome):
         return 0.0
 
 def getbest(run):
-    g = NEAT.Genome(0,
-                    substrate.GetMinCPPNInputs(),
-                    0,
-                    substrate.GetMinCPPNOutputs(),
-                    False,
-                    NEAT.ActivationFunction.TANH,
-                    NEAT.ActivationFunction.TANH,
-                    0,
-                    params)
-
     #g = NEAT.Genome(0,
     #                substrate.GetMinCPPNInputs(),
+    #                0,
     #                substrate.GetMinCPPNOutputs(),
     #                False,
     #                NEAT.ActivationFunction.TANH,
     #                NEAT.ActivationFunction.TANH,
+    #                0,
     #                params)
 
+    g = NEAT.Genome(0,
+                    substrate.GetMinCPPNInputs(),
+                    substrate.GetMinCPPNOutputs(),
+                    False,
+                    NEAT.ActivationFunction.TANH,
+                    NEAT.ActivationFunction.TANH,
+                    params)
+
     pop = NEAT.Population(g, params, True, 1.0, run)
-    for generation in range(2500):
+
+    for generation in range(10000):
         #Evaluate genomes
         genome_list = NEAT.GetGenomeList(pop)
-        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_double_xor, display=False)
+
+        #fitnesses = EvaluateGenomeList_Parallel(genome_list, evaluate_double_xor, cores = 4,  #display=False)
+        fitnesses = EvaluateGenomeList_Parallel(genome_list, evaluate_retina_and, cores =4,  display=False)
         #fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_retina_and, display=False)
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
 
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
-        if max(fitnesses) > 0.98:
-            break
+        #if max(fitnesses) > 0.98:
+        #    break
+
         generations = generation
         pop.Epoch()
 

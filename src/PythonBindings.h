@@ -184,7 +184,7 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
             NN_Input_numpy)
             .def("Output",
             &NeuralNetwork::Output)
-            
+
             .def("AddNeuron",
             &NeuralNetwork::AddNeuron)
             .def("AddConnection",
@@ -212,6 +212,8 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
             .def(init<char*>())
             .def(init<unsigned int, unsigned int, unsigned int, unsigned int,
                     bool, ActivationFunction, ActivationFunction, int, Parameters>())
+            .def(init<unsigned int, unsigned int,unsigned int,
+                    bool, ActivationFunction, ActivationFunction, Parameters>())
             .def("NumNeurons", &Genome::NumNeurons)
             .def("NumLinks", &Genome::NumLinks)
             .def("NumInputs", &Genome::NumInputs)
@@ -225,7 +227,7 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
             .def("BuildPhenotype", &Genome::BuildPhenotype)
             .def("DerivePhenotypicChanges", &Genome::DerivePhenotypicChanges)
             .def("BuildHyperNEATPhenotype", &Genome::BuildHyperNEATPhenotype)
-            
+
              .def("Randomize_LinkWeights", &Genome::Randomize_LinkWeights)
 
             .def("IsEvaluated", &Genome::IsEvaluated)
@@ -289,7 +291,7 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
             .def_readwrite("m_max_weight_and_bias", &Substrate::m_max_weight_and_bias)
             .def_readwrite("m_min_time_const", &Substrate::m_min_time_const)
             .def_readwrite("m_max_time_const", &Substrate::m_max_time_const)
-            
+
             .def_readwrite("m_input_coords", &Substrate::m_input_coords )
             .def_readwrite("m_hidden_coords", &Substrate::m_hidden_coords)
             .def_readwrite("m_output_coords", &Substrate::m_output_coords)
@@ -477,7 +479,7 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
     class_< std::vector<float> >("FloatsList")
             .def(vector_indexing_suite< std::vector<float> >() )
             ;
-            
+
     class_< std::vector< std::vector<float> > >("FloatsList2D")
             .def(vector_indexing_suite< std::vector< std::vector<float> > >() )
             ;
@@ -485,7 +487,7 @@ BOOST_PYTHON_MODULE(_MultiNEAT)
     class_< std::vector<int> >("IntsList")
             .def(vector_indexing_suite< std::vector<int> >() )
             ;
-            
+
     class_< std::vector< std::vector<int> > >("IntsList2D")
             .def(vector_indexing_suite< std::vector< std::vector<int> > >() )
             ;
