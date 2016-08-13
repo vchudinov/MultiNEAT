@@ -4,14 +4,13 @@ import sys
 import time
 import random as rnd
 import subprocess as comm
-import cv2
-import numpy as np
+#import cv2
+#import numpy as np
 import pickle as pickle
 import MultiNEAT as NEAT
-from MultiNEAT import GetGenomeList, ZipFitness
-from MultiNEAT import EvaluateGenomeList_Serial
+from MultiNEAT import GetGenomeList, ZipFitness, EvaluateGenomeList_Serial, EvaluateGenomeList_Parallel
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
+#from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 params = NEAT.Parameters()
@@ -56,23 +55,23 @@ params.ActivationFunction_SignedSine_Prob = 1.0;
 params.ActivationFunction_UnsignedSine_Prob = 0.0;
 params.ActivationFunction_Linear_Prob = 1.0;
 
-params.DivisionThreshold = 0.5;
+params.DivisionThreshold = 0.3;
 params.VarianceThreshold = 0.03;
 params.BandThreshold = 0.3;
 params.InitialDepth = 2;
-params.MaxDepth = 3;
+params.MaxDepth = 4;
 params.IterationLevel = 1;
 params.Leo = False;
 params.GeometrySeed = False;
 params.LeoSeed = False;
 params.LeoThreshold = 0.3;
-params.CPPN_Bias = -1.0;
+params.CPPN_Bias = 1.0;
 params.Qtree_X = 0.0;
 params.Qtree_Y = 0.0;
 params.Width = 1.;
 params.Height = 1.;
 params.Elitism = 0.1;
- 
+
 rng = NEAT.RNG()
 rng.TimeSeed()
 
@@ -94,7 +93,7 @@ substrate.m_allow_input_output_links = False;
 substrate.m_allow_hidden_output_links = True;
 substrate.m_allow_hidden_hidden_links = False;
 
-substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.SIGNED_SIGMOID;
+substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 
 substrate.m_with_distance = False;
@@ -109,7 +108,7 @@ def evaluate_xor(genome):
 
         genome.BuildESHyperNEATPhenotype(net, substrate, params)
         error = 0
-        depth = 3
+        depth = 5
         correct = 0.0
 
         net.Flush()
@@ -118,7 +117,7 @@ def evaluate_xor(genome):
         [net.Activate() for _ in range(depth)]
         o = net.Output()
         error += abs(o[0] - 1)
-        if o[0] > 0.75:
+        if o[0] > 0.5:
             correct +=1.
 
         net.Flush()
@@ -126,7 +125,7 @@ def evaluate_xor(genome):
         [net.Activate() for _ in range(depth)]
         o = net.Output()
         error += abs(o[0] - 1)
-        if o[0] > 0.75:
+        if o[0] > 0.5:
             correct +=1.
 
         net.Flush()
@@ -134,7 +133,7 @@ def evaluate_xor(genome):
         [net.Activate() for _ in range(depth)]
         o = net.Output()
         error += abs(o[0] - 0)
-        if o[0] < 0.25:
+        if o[0] < 0.5:
             correct +=1.
 
         net.Flush()
@@ -142,7 +141,7 @@ def evaluate_xor(genome):
         [net.Activate() for _ in range(depth)]
         o = net.Output()
         error += abs(o[0] - 0)
-        if o[0] < 0.25:
+        if o[0] < 0.5:
             correct +=1.
 
         return (4 - error)**2
@@ -171,14 +170,14 @@ def getbest(run):
 
         fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_xor, display=False)
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
-        
+
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
 
         # Print best fitness
         #print("---------------------------")
         #print("Generation: ", generation)
         #print("max ", max([x.GetLeader().GetFitness() for x in pop.Species]))
-        
+
 
         # Visualize best network's Genome
         '''
@@ -200,7 +199,7 @@ def getbest(run):
         '''
         if max(fitnesses) > 15.0:
             break
-        
+
         # Epoch
         generations = generation
         pop.Epoch()
@@ -217,4 +216,3 @@ avg_gens = sum(gens) / len(gens)
 
 print('All:', gens)
 print('Average:', avg_gens)
-
