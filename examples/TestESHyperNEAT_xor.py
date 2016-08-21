@@ -31,7 +31,7 @@ params.OverallMutationRate = 0.15;
 params.MutateAddLinkProb = 0.08;
 params.MutateAddNeuronProb = 0.01;
 params.MutateWeightsProb = 0.90;
-params.MaxWeight = 8.0;
+params.MaxWeight = 6.0;
 params.WeightMutationMaxPower = 0.2;
 params.WeightReplacementMaxPower = 1.0;
 
@@ -43,20 +43,20 @@ params.MaxActivationA = 6.0;
 params.MutateNeuronActivationTypeProb = 0.03;
 
 params.ActivationFunction_SignedSigmoid_Prob = 0.0;
-params.ActivationFunction_UnsignedSigmoid_Prob = 0.0;
-params.ActivationFunction_Tanh_Prob = 1.0;
+params.ActivationFunction_UnsignedSigmoid_Prob = 1.0;
+params.ActivationFunction_Tanh_Prob = .0;
 params.ActivationFunction_TanhCubic_Prob = 0.0;
-params.ActivationFunction_SignedStep_Prob = 1.0;
+params.ActivationFunction_SignedStep_Prob = .0;
 params.ActivationFunction_UnsignedStep_Prob = 0.0;
-params.ActivationFunction_SignedGauss_Prob = 1.0;
-params.ActivationFunction_UnsignedGauss_Prob = 0.0;
+params.ActivationFunction_SignedGauss_Prob = .0;
+params.ActivationFunction_UnsignedGauss_Prob = 1.0;
 params.ActivationFunction_Abs_Prob = 0.0;
-params.ActivationFunction_SignedSine_Prob = 1.0;
-params.ActivationFunction_UnsignedSine_Prob = 0.0;
+params.ActivationFunction_SignedSine_Prob = .0;
+params.ActivationFunction_UnsignedSine_Prob = 1.0;
 params.ActivationFunction_Linear_Prob = 1.0;
 
 params.DivisionThreshold = 0.3;
-params.VarianceThreshold = 0.03;
+params.VarianceThreshold = 0.3;
 params.BandThreshold = 0.3;
 params.InitialDepth = 2;
 params.MaxDepth = 4;
@@ -74,8 +74,12 @@ params.Elitism = 0.1;
 
 rng = NEAT.RNG()
 rng.TimeSeed()
-
+'''
 substrate = NEAT.Substrate([(-1., -1., 0.0), (1., -1., 0.0), (0., -1., 0.0)],
+                           [],
+                           [(0., 1., 0.0)])
+'''
+substrate = NEAT.Substrate([(-1., -1., 0.0), (1., -1., 0.0), (0., -1., 0.0), (0.0, -0.75, 0.0)],
                            [],
                            [(0., 1., 0.0)])
 
@@ -93,12 +97,12 @@ substrate.m_allow_input_output_links = False;
 substrate.m_allow_hidden_output_links = True;
 substrate.m_allow_hidden_hidden_links = False;
 
-substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
+substrate.m_hidden_nodes_activation = NEAT.ActivationFunction.TANH;
 substrate.m_output_nodes_activation = NEAT.ActivationFunction.UNSIGNED_SIGMOID;
 
 substrate.m_with_distance = False;
 
-substrate.m_max_weight_and_bias = 8.0;
+substrate.m_max_weight_and_bias = 6.0;
 
 def evaluate_xor(genome):
 
@@ -108,7 +112,7 @@ def evaluate_xor(genome):
 
         genome.BuildESHyperNEATPhenotype(net, substrate, params)
         error = 0
-        depth = 5
+        depth = 4
         correct = 0.0
 
         net.Flush()
@@ -150,9 +154,89 @@ def evaluate_xor(genome):
         print('Exception:', ex)
         return 0.0
 
+def evaluate_three_xor(genome):
+        net = NEAT.NeuralNetwork()
 
+        try:
+
+            genome.BuildESHyperNEATPhenotype(net, substrate, params)
+            error = 0
+            depth = 4
+            correct = 0.0
+
+            net.Flush()
+
+            net.Input([0,0,0,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0] - 1)
+            if o[0] > 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([0,0,1,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0])
+            if o[0] < 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([0,1,0,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0])
+            if o[0] < 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([0,1,1,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0] - 1)
+            if o[0] > 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([1,0,0,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0])
+            if o[0] < 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([1,0,1,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0] - 1)
+            if o[0] > 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([1,1,0,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0] - 1)
+            if o[0] > 0.5:
+                correct +=1.
+
+            net.Flush()
+            net.Input([1,1,1,1])
+            [net.Activate() for _ in range(depth)]
+            o = net.Output()
+            error += abs(o[0])
+            if o[0] < 0.5:
+                correct +=1.
+
+            return (8 - error)**2
+
+        except Exception as ex:
+            print('Exception:', ex)
+            return 0.0
 
 def getbest(run):
+    '''
     g = NEAT.Genome(0,
                     substrate.GetMinCPPNInputs(),
                     0,
@@ -162,13 +246,24 @@ def getbest(run):
                     NEAT.ActivationFunction.TANH,
                     0,
                     params)
+    '''
+    g = NEAT.Genome(0,
+                    5,
+                    0,
+                    1,
+                    False,
+                    NEAT.ActivationFunction.UNSIGNED_SIGMOID,
+                    NEAT.ActivationFunction.UNSIGNED_SIGMOID,
+                    0,
+                    params)
 
     pop = NEAT.Population(g, params, True, 1.0, run)
     for generation in range(1000):
         #Evaluate genomes
         genome_list = NEAT.GetGenomeList(pop)
 
-        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_xor, display=False)
+        #fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_xor, display=False)
+        fitnesses = EvaluateGenomeList_Serial(genome_list, evaluate_three_xor, display=False)
         [genome.SetFitness(fitness) for genome, fitness in zip(genome_list, fitnesses)]
 
         print('Gen: %d Best: %3.5f' % (generation, max(fitnesses)))
@@ -197,7 +292,8 @@ def getbest(run):
         cv2.imshow("NN", img)
         cv2.waitKey(1)
         '''
-        if max(fitnesses) > 15.0:
+        #if max(fitnesses) > 15.0:
+        if max(fitnesses) > 63.0:
             break
 
         # Epoch
@@ -208,7 +304,7 @@ def getbest(run):
 
 
 gens = []
-for run in range(100):
+for run in range(10):
     gen = getbest(run)
     gens += [gen]
     print('Run:', run, 'Generations to solve XOR:', gen)

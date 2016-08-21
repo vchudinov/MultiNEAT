@@ -691,7 +691,7 @@ void Genome::BuildHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst)
 
     // now loop over every potential connection in the substrate and take its weight
     //CalculateDepth();
-    int dp = 8;//GetDepth();
+    int dp = 3;//GetDepth();
 
     // For leaky substrates, first loop over the neurons and set their properties
     if (subst.m_leaky)
@@ -2957,7 +2957,7 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
     // Hidden to hidden.
     // Basically the same procedure as above repeated IterationLevel times (see the params)
     unexplored_nodes = hidden_nodes;
-    for (unsigned int i = 0; i < params.IterationLevel; i++)
+    for (unsigned int i = 0; i <= params.IterationLevel; i++)
     {
 
         for( auto hidden_point: unexplored_nodes)
@@ -3037,7 +3037,7 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
     }
     // Add the neurons.Input first, followed by bias, output and hidden. In this order.
 
-    for (unsigned int i = 0; i < input_count -1; i++)
+    for (unsigned int i = 0; i < input_count; i++) //input_count -1
     {
         Neuron t_n;
         t_n.m_a = 1;
@@ -3048,6 +3048,7 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
         net.m_neurons.push_back(t_n);
     }
     // Bias n.
+    /*
     Neuron t_n;
     t_n.m_a = 1;
     t_n.m_b = 0;
@@ -3055,7 +3056,7 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
     t_n.m_activation_function_type = NEAT::LINEAR;
     t_n.m_type = NEAT::BIAS;
     net.m_neurons.push_back(t_n);
-
+    */
     for (unsigned int i = 0; i < output_count; i++)
     {
         Neuron t_n;
@@ -3081,6 +3082,7 @@ void Genome::BuildESHyperNEATPhenotype(NeuralNetwork& net, Substrate& subst, Par
 
     // Clean the generated network from dangling connections and we're good to go.
     Clean_Net(net.m_connections, input_count, output_count, hidden_nodes.size());
+    //cout << net.m_connections.size() << endl;
 }
 
 
@@ -3160,7 +3162,7 @@ void Genome::DivideInitialize(const std::vector<double>& node,
 
         }
 
-        if ((p->level < params.InitialDepth) || ((p->level < params.MaxDepth) && Variance(p) > params.DivisionThreshold))
+        if ((p->level <= params.InitialDepth) || ((p->level <= params.MaxDepth) && Variance(p) > params.DivisionThreshold))
         {   for (unsigned int i = 0; i < 4; i++)
             {
                 q.push( p->children[i]);
@@ -3325,8 +3327,10 @@ double Genome::Variance(boost::shared_ptr<QuadPoint> &point)
     {
         return 0.0;
     }
+
     std::vector<double> values;
     CollectValues(values, point);
+
     double med = 0.0;
     double v = 0.0;
 
@@ -3342,38 +3346,6 @@ double Genome::Variance(boost::shared_ptr<QuadPoint> &point)
     }
     v = v/values.size();
 
-    /*boost::accumulators::accumulator_set<double,  boost::accumulators::stats< boost::accumulators::tag::variance> > acc;
-    for (unsigned int i = 0; i < 4; i++)
-    {
-        acc(point -> children[i] -> weight);
-    }
-
-    //Old approach. Traverses the entire tree. The new one checks just the children and seems to work just as well.
-    std::queue<boost::shared_ptr<QuadPoint> > q;
-    q.push(point);
-    while(!q.empty())
-        {
-            boost::shared_ptr<QuadPoint> c(q.front());
-            q.pop();
-        cout << "Depth " << c -> level << endl;
-            if (c -> children.size() > 0)
-                {
-                    for (unsigned int i =0; i < c -> children.size(); i++)
-                        {   //error is here
-    		  cout << "pushed" << endl;
-
-    		   q.push(c -> children[i]);
-    		   cout << "yep" << endl;
-                        }
-                }
-            else
-                {
-                    acc(c -> weight);
-
-                }
-        }*/
-
-    //return boost::accumulators::variance(acc);
     return v;
 }
 
@@ -3419,13 +3391,10 @@ void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_
         for (auto co: connections)
         {
           hasIncoming[co.m_target_neuron_idx] = true;
-        }
 
-        for ( auto co: connections)
-        {
           if (co.m_target_neuron_idx != co.m_source_neuron_idx)
           {
-            hasOutgoing[co.m_source_neuron_idx] = true;
+             hasOutgoing[co.m_source_neuron_idx] = true;
           }
         }
 
@@ -3440,8 +3409,8 @@ void Genome::Clean_Net(std::vector<Connection>& connections, unsigned int input_
             }
         }
 
-        boost::range::remove_erase_if(connections, [&](Connection& con) -> bool {return hasIncoming[con.m_source_neuron_idx];});
-        boost::range::remove_erase_if(connections, [&](Connection& con) -> bool {return hasOutgoing[con.m_target_neuron_idx];});
+        boost::range::remove_erase_if(connections, [&](Connection& con) -> bool {return !hasIncoming[con.m_source_neuron_idx];});
+        boost::range::remove_erase_if(connections, [&](Connection& con) -> bool {return !hasOutgoing[con.m_target_neuron_idx];});
 
     }
 }
